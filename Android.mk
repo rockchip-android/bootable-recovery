@@ -83,7 +83,8 @@ LOCAL_STATIC_LIBRARIES := \
     liblog \
     libselinux \
     libm \
-    libc
+    libc \
+    librk_emmcutils
 
 LOCAL_HAL_STATIC_LIBRARIES := libhealthd
 
@@ -140,6 +141,7 @@ LOCAL_STATIC_LIBRARIES := libcrypto_static
 include $(BUILD_STATIC_LIBRARY)
 
 include $(LOCAL_PATH)/minui/Android.mk \
+    $(LOCAL_PATH)/emmcutils/Android.mk \
     $(LOCAL_PATH)/minzip/Android.mk \
     $(LOCAL_PATH)/minadbd/Android.mk \
     $(LOCAL_PATH)/mtdutils/Android.mk \
