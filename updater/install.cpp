@@ -56,6 +56,7 @@
 #include "updater.h"
 #include "install.h"
 #include "tune2fs.h"
+#include "emmcutils/rk_emmcutils.h"
 
 #ifdef USE_EXT4
 #include "make_ext4fs.h"
@@ -112,6 +113,7 @@ char* PrintSha1(const uint8_t* digest) {
 //    fs_type="yaffs2" partition_type="MTD"     location=partition
 //    fs_type="ext4"   partition_type="EMMC"    location=device
 Value* MountFn(const char* name, State* state, int argc, Expr* argv[]) {
+    char *device;
     char* result = NULL;
     if (argc != 4 && argc != 5) {
         return ErrorAbort(state, kArgsParsingFailure, "%s() expects 4-5 args, got %d", name, argc);
@@ -170,30 +172,30 @@ Value* MountFn(const char* name, State* state, int argc, Expr* argv[]) {
             setfscreatecon(NULL);
         }
     }
-
+    device = getDevicePath(location);
     if (strcmp(partition_type, "MTD") == 0) {
         mtd_scan_partitions();
         const MtdPartition* mtd;
-        mtd = mtd_find_partition_by_name(location);
+        mtd = mtd_find_partition_by_name(device);
         if (mtd == NULL) {
             uiPrintf(state, "%s: no mtd partition named \"%s\"\n",
-                    name, location);
+                    name, device);
             result = strdup("");
             goto done;
         }
         if (mtd_mount_partition(mtd, mount_point, fs_type, 0 /* rw */) != 0) {
             uiPrintf(state, "mtd mount of %s failed: %s\n",
-                    location, strerror(errno));
+                    device, strerror(errno));
             result = strdup("");
             goto done;
         }
         result = mount_point;
     } else {
-        if (mount(location, mount_point, fs_type,
+        if (mount(device, mount_point, fs_type,
                   MS_NOATIME | MS_NODEV | MS_NODIRATIME,
                   has_mount_options ? mount_options : "") < 0) {
             uiPrintf(state, "%s: failed to mount %s at %s: %s\n",
-                    name, location, mount_point, strerror(errno));
+                    name, device, mount_point, strerror(errno));
             result = strdup("");
         } else {
             result = mount_point;
@@ -309,6 +311,7 @@ Value* FormatFn(const char* name, State* state, int argc, Expr* argv[]) {
     char* location;
     char* fs_size;
     char* mount_point;
+    char* device;
 
     if (ReadArgs(state, argv, 5, &fs_type, &partition_type, &location, &fs_size, &mount_point) < 0) {
         return NULL;
@@ -333,40 +336,40 @@ Value* FormatFn(const char* name, State* state, int argc, Expr* argv[]) {
                    name);
         goto done;
     }
-
+    device = getDevicePath(location);
     if (strcmp(partition_type, "MTD") == 0) {
         mtd_scan_partitions();
-        const MtdPartition* mtd = mtd_find_partition_by_name(location);
+        const MtdPartition* mtd = mtd_find_partition_by_name(device);
         if (mtd == NULL) {
             printf("%s: no mtd partition named \"%s\"",
-                    name, location);
+                    name, device);
             result = strdup("");
             goto done;
         }
         MtdWriteContext* ctx = mtd_write_partition(mtd);
         if (ctx == NULL) {
-            printf("%s: can't write \"%s\"", name, location);
+            printf("%s: can't write \"%s\"", name, device);
             result = strdup("");
             goto done;
         }
         if (mtd_erase_blocks(ctx, -1) == -1) {
             mtd_write_close(ctx);
-            printf("%s: failed to erase \"%s\"", name, location);
+            printf("%s: failed to erase \"%s\"", name, device);
             result = strdup("");
             goto done;
         }
         if (mtd_write_close(ctx) != 0) {
-            printf("%s: failed to close \"%s\"", name, location);
+            printf("%s: failed to close \"%s\"", name, device);
             result = strdup("");
             goto done;
         }
         result = location;
 #ifdef USE_EXT4
     } else if (strcmp(fs_type, "ext4") == 0) {
-        int status = make_ext4fs(location, atoll(fs_size), mount_point, sehandle);
+        int status = make_ext4fs(device, atoll(fs_size), mount_point, sehandle);
         if (status != 0) {
             printf("%s: make_ext4fs failed (%d) on %s",
-                    name, status, location);
+                    name, status, device);
             result = strdup("");
             goto done;
         }
@@ -1069,9 +1072,12 @@ Value* FileGetPropFn(const char* name, State* state, int argc, Expr* argv[]) {
 // write_raw_image(filename_or_blob, partition)
 Value* WriteRawImageFn(const char* name, State* state, int argc, Expr* argv[]) {
     char* result = NULL;
-
     Value* partition_value;
     Value* contents;
+    char *device;
+    int emmcEnabled;
+    bool success;
+
     if (ReadValueArgs(state, argv, 2, &contents, &partition_value) < 0) {
         return NULL;
     }
@@ -1091,65 +1097,106 @@ Value* WriteRawImageFn(const char* name, State* state, int argc, Expr* argv[]) {
         goto done;
     }
 
-    mtd_scan_partitions();
-    const MtdPartition* mtd;
-    mtd = mtd_find_partition_by_name(partition);
-    if (mtd == NULL) {
-        printf("%s: no mtd partition named \"%s\"\n", name, partition);
-        result = strdup("");
-        goto done;
-    }
+    //add by jkand.huang
+    printf("WriteRawImageFn: partition is %s\n", partition);
+    emmcEnabled = getEmmcState();
 
-    MtdWriteContext* ctx;
-    ctx = mtd_write_partition(mtd);
-    if (ctx == NULL) {
-        printf("%s: can't write mtd partition \"%s\"\n",
-                name, partition);
-        result = strdup("");
-        goto done;
-    }
+    if(emmcEnabled){
+        device = getDevicePath(partition);
+        FILE *dest_partition = fopen(device, "wb");
+        if(dest_partition == NULL){
+            printf("%s: no emmc partition named \"%s\"\n", name, device);
+            result = strdup("");
+            goto done;
+        }
+        if(contents->type == VAL_STRING){
+            // we're given a filename as the contents
+            char* filename = contents->data;
+            FILE* f = ota_fopen(filename, "rb");
+            if (f == NULL) {
+                printf("%s: can't open %s: %s\n", name, filename, strerror(errno));
+                result = strdup("");
+                goto done;
+            }
+            success = true;
+            char* buffer = reinterpret_cast<char*>(malloc(BUFSIZ));
+            int read;
+            while (success && (read = ota_fread(buffer, 1, BUFSIZ, f)) > 0) {
+                int wrote = fwrite(buffer, 1, read, dest_partition);
+                success = success && (wrote == read);
+            }
+            free(buffer);
+            fclose(f);
 
-    bool success;
-
-    if (contents->type == VAL_STRING) {
-        // we're given a filename as the contents
-        char* filename = contents->data;
-        FILE* f = ota_fopen(filename, "rb");
-        if (f == NULL) {
-            printf("%s: can't open %s: %s\n", name, filename, strerror(errno));
+        }else if(contents->type == VAL_BLOB){
+            // we're given a blob as the contents
+            ssize_t wrote = fwrite(contents->data, 1, contents->size, dest_partition);
+            success = (wrote == contents->size);
+            if (!success) {
+                printf("emmc data write to %s failed: %s\n",
+                    device, strerror(errno));
+            }
+        }
+        fflush(dest_partition);
+    }else{
+    //add by jkand.huang
+        mtd_scan_partitions();
+        const MtdPartition* mtd;
+        mtd = mtd_find_partition_by_name(partition);
+        if (mtd == NULL) {
+            printf("%s: no mtd partition named \"%s\"\n", name, partition);
             result = strdup("");
             goto done;
         }
 
-        success = true;
-        char* buffer = reinterpret_cast<char*>(malloc(BUFSIZ));
-        int read;
-        while (success && (read = ota_fread(buffer, 1, BUFSIZ, f)) > 0) {
-            int wrote = mtd_write_data(ctx, buffer, read);
-            success = success && (wrote == read);
+        MtdWriteContext* ctx;
+        ctx = mtd_write_partition(mtd);
+        if (ctx == NULL) {
+            printf("%s: can't write mtd partition \"%s\"\n",
+                    name, partition);
+            result = strdup("");
+            goto done;
         }
-        free(buffer);
-        ota_fclose(f);
-    } else {
-        // we're given a blob as the contents
-        ssize_t wrote = mtd_write_data(ctx, contents->data, contents->size);
-        success = (wrote == contents->size);
-    }
-    if (!success) {
-        printf("mtd_write_data to %s failed: %s\n",
-                partition, strerror(errno));
-    }
 
-    if (mtd_erase_blocks(ctx, -1) == -1) {
-        printf("%s: error erasing blocks of %s\n", name, partition);
-    }
-    if (mtd_write_close(ctx) != 0) {
-        printf("%s: error closing write of %s\n", name, partition);
-    }
+        if (contents->type == VAL_STRING) {
+            // we're given a filename as the contents
+            char* filename = contents->data;
+            FILE* f = ota_fopen(filename, "rb");
+            if (f == NULL) {
+                printf("%s: can't open %s: %s\n", name, filename, strerror(errno));
+                result = strdup("");
+                goto done;
+            }
 
-    printf("%s %s partition\n",
-           success ? "wrote" : "failed to write", partition);
+            success = true;
+            char* buffer = reinterpret_cast<char*>(malloc(BUFSIZ));
+            int read;
+            while (success && (read = ota_fread(buffer, 1, BUFSIZ, f)) > 0) {
+                int wrote = mtd_write_data(ctx, buffer, read);
+                success = success && (wrote == read);
+            }
+            free(buffer);
+            ota_fclose(f);
+        } else {
+            // we're given a blob as the contents
+            ssize_t wrote = mtd_write_data(ctx, contents->data, contents->size);
+            success = (wrote == contents->size);
+        }
+        if (!success) {
+            printf("mtd_write_data to %s failed: %s\n",
+                    partition, strerror(errno));
+        }
 
+        if (mtd_erase_blocks(ctx, -1) == -1) {
+            printf("%s: error erasing blocks of %s\n", name, partition);
+        }
+        if (mtd_write_close(ctx) != 0) {
+            printf("%s: error closing write of %s\n", name, partition);
+        }
+
+        printf("%s %s partition\n",
+            success ? "wrote" : "failed to write", partition);
+    }
     result = success ? partition : strdup("");
 
 done:

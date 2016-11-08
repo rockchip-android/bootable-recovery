@@ -16,7 +16,7 @@
 #include "cutils/properties.h"
 
 typedef struct fstab_rec Volume;
-
+static struct fstab *fstab = NULL;
 int getEmmcState() {
     char bootmode[256];
     int result = 0;
@@ -32,34 +32,70 @@ int getEmmcState() {
     return result;
 }
 
-int transformPath(const char *in, char *out) {
-    int i;
-    struct fstab *fstab = NULL;
+
+
+static void load_volume_table()
+{
+    int ret;
     char *name_fstab = "/fstab.rk30board";
 
+    if(fstab == NULL) {
+        fstab = fs_mgr_read_fstab(name_fstab);
+        if (!fstab) {
+            printf("failed to read android.fstab\n");
+            return ;
+        }
+    }
+
+    ret = fs_mgr_add_entry(fstab, "/tmp", "ramdisk", "ramdisk");
+    if (ret < 0 ) {
+        printf("failed to add /tmp entry to fstab\n");
+        fs_mgr_free_fstab(fstab);
+        fstab = NULL;
+        return;
+    }
+}
+
+static Volume* volume_for_path(const char* path) {
+    return fs_mgr_get_entry_for_mount_point(fstab, path);
+}
+
+char* getDevicePath(char *mtdDevice) {
+    int emmcEnabled = getEmmcState();
+    char devicePath[128] = "/";
+    if(emmcEnabled) {
+        if(fstab == NULL) {
+            load_volume_table();
+        }
+        if(strstr(mtdDevice, "/dev/block/rknand_")) {
+            strcat(devicePath, mtdDevice+18);
+            printf("mtd device %s\n", devicePath);
+            Volume* v = volume_for_path(devicePath);
+            if (v != NULL) {
+                printf("get volume path %s\n", v->blk_device);
+                return v->blk_device;
+            }else {
+                printf("Cannot load volume %s!\n", devicePath);
+            }
+        }
+    }
+    return mtdDevice;
+}
+int transformPath(const char *in, char *out) {
     if(in == NULL || out == NULL) {
         printf("transformPath argument can't be NULL\n");
         return -1;
     }
     printf("transformPath in: %s\n", in);
-    if(fstab == NULL) {
-        fstab = fs_mgr_read_fstab(name_fstab);
-        if (!fstab) {
-            printf("failed to read android.fstab\n");
-            return -1;
-        }
+    Volume* v = volume_for_path("/system");
+    if (v != NULL) {
+        printf("get volume path %s\n", v->blk_device);
+        int len = strlen(v->blk_device);
+        strncpy(out, v->blk_device, len-6);
+        *(out + len - 6) = '\0';
+    }else {
+        printf("Cannot load volume %s!\n", "/system");
     }
-    printf("android filesystem table\n");
-    for (i = 0; i < fstab->num_entries; ++i) {
-        Volume* v = &fstab->recs[i];
-        printf("  %d %s %s %s %lld\n", i, v->mount_point, v->fs_type, v->blk_device, v->length);
-        if(strcmp(v->mount_point, "/system") == 0){
-            int len = strlen(v->blk_device);
-            strncpy(out, v->blk_device, len-6);
-            *(out + len - 6) = '\0';
-        }
-    }
-
     printf("\n");
 
     fs_mgr_free_fstab(fstab);
@@ -68,7 +104,3 @@ int transformPath(const char *in, char *out) {
 
     return 0;
 }
-
-
-
-

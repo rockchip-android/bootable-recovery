@@ -104,6 +104,7 @@ static const char *INTENT_FILE = "/cache/recovery/intent";
 static const char *LOG_FILE = "/cache/recovery/log";
 static const char *LAST_INSTALL_FILE = "/cache/recovery/last_install";
 static const char *LOCALE_FILE = "/cache/recovery/last_locale";
+static const char *FLAG_FILE = "/cache/recovery/last_flag";
 static const char *CONVERT_FBE_DIR = "/tmp/convert_fbe";
 static const char *CONVERT_FBE_FILE = "/tmp/convert_fbe/convert_fbe";
 static const char *CACHE_ROOT = "/cache";
@@ -114,6 +115,8 @@ static const char *TEMPORARY_INSTALL_FILE = "/tmp/last_install";
 static const char *LAST_KMSG_FILE = "/cache/recovery/last_kmsg";
 static const char *LAST_LOG_FILE = "/cache/recovery/last_log";
 static const int KEEP_LOG_COUNT = 10;
+static char updatepath[128] = "\0";
+bool bAutoUpdateComplete = false;
 // We will try to apply the update package 5 times at most in case of an I/O error.
 static const int EIO_RETRY_COUNT = 4;
 static const int BATTERY_READ_TIMEOUT_IN_SEC = 10;
@@ -558,6 +561,19 @@ finish_recovery(const char *send_intent) {
     std::string err;
     if (!write_bootloader_message(boot, &err)) {
         LOGE("%s\n", err.c_str());
+    }
+    if (bAutoUpdateComplete==true) {
+        FILE *fp = fopen_path(FLAG_FILE, "w");
+        if (fp == NULL) {
+            LOGE("Can't open %s\n", FLAG_FILE);
+        }
+        char strflag[160]="success$path=";
+        strcat(strflag,updatepath);
+        if (fwrite(strflag, 1, sizeof(strflag), fp) != sizeof(strflag)) {
+            LOGE("write %s failed! \n", FLAG_FILE);
+        }
+        fclose(fp);
+        bAutoUpdateComplete=false;
     }
 
     // Remove the command file, so recovery won't repeat indefinitely.
@@ -1672,6 +1688,7 @@ int main(int argc, char **argv) {
             else
                 printf("modified_path allocation failed\n");
         }
+        strcpy(updatepath, update_package);
     }
     printf("\n");
 
@@ -1731,6 +1748,8 @@ int main(int argc, char **argv) {
                 if (is_ro_debuggable()) {
                     ui->ShowText(true);
                 }
+            }else{
+                bAutoUpdateComplete=true;
             }
         }
     } else if (should_wipe_data) {
