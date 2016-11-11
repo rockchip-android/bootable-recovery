@@ -36,6 +36,7 @@
 #include "edify/expr.h"
 #include "ota_io.h"
 #include "print_sha1.h"
+#include "emmcutils/rk_emmcutils.h"
 
 static int LoadPartitionContents(const char* filename, FileContents* file);
 static ssize_t FileSink(const unsigned char* data, ssize_t len, void* token);
@@ -113,15 +114,21 @@ static int LoadPartitionContents(const char* filename, FileContents* file) {
     }
 
     enum PartitionType type;
-    if (pieces[0] == "MTD") {
+    int emmcEnabled = getEmmcState();
+    char temp[64];
+    if (pieces[0] == "MTD" && emmcEnabled == 0) {
         type = MTD;
-    } else if (pieces[0] == "EMMC") {
+    } else if (pieces[0] == "EMMC" || emmcEnabled == 1) {
         type = EMMC;
     } else {
         printf("LoadPartitionContents called with bad filename (%s)\n", filename);
         return -1;
     }
     const char* partition = pieces[1].c_str();
+    if(emmcEnabled) {
+        transformPath(partition, temp);
+        partition = temp;
+    }
 
     size_t pairs = (pieces.size() - 2) / 2;    // # of (size, sha1) pairs in filename
     std::vector<size_t> index(pairs);
@@ -315,15 +322,21 @@ int WriteToPartition(const unsigned char* data, size_t len, const char* target) 
     }
 
     enum PartitionType type;
-    if (pieces[0] == "MTD") {
+    int emmcEnabled = getEmmcState();
+    char temp[64];
+    if (pieces[0] == "MTD" && emmcEnabled == 0) {
         type = MTD;
-    } else if (pieces[0] == "EMMC") {
+    } else if (pieces[0] == "EMMC" || emmcEnabled == 1) {
         type = EMMC;
     } else {
-        printf("WriteToPartition called with bad target (%s)\n", target);
+        printf("LoadPartitionContents called with bad filename (%s)\n", target);
         return -1;
     }
     const char* partition = pieces[1].c_str();
+    if(emmcEnabled) {
+        transformPath(partition, temp);
+        partition = temp;
+    }
 
     switch (type) {
         case MTD: {

@@ -82,6 +82,8 @@ char* getDevicePath(char *mtdDevice) {
     return mtdDevice;
 }
 int transformPath(const char *in, char *out) {
+    if(fstab == NULL)
+        load_volume_table();
     if(in == NULL || out == NULL) {
         printf("transformPath argument can't be NULL\n");
         return -1;
@@ -98,7 +100,7 @@ int transformPath(const char *in, char *out) {
     }
     printf("\n");
 
-    fs_mgr_free_fstab(fstab);
+    //fs_mgr_free_fstab(fstab);
     strcat(out, in);
     printf("transformPath out: %s\n", out);
 
