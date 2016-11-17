@@ -46,6 +46,7 @@
 #include "roots.h"
 #include "ui.h"
 #include "verifier.h"
+#include "rkupdate/Upgrade.h"
 
 extern RecoveryUI* ui;
 
@@ -53,6 +54,7 @@ extern RecoveryUI* ui;
 static constexpr const char* AB_OTA_PAYLOAD_PROPERTIES = "payload_properties.txt";
 static constexpr const char* AB_OTA_PAYLOAD = "payload.bin";
 #define PUBLIC_KEYS_FILE "/res/keys"
+#define LOADER_PATH "RKLoader.bin"
 static constexpr const char* METADATA_PATH = "META-INF/com/android/metadata";
 
 // Default allocation of progress bar segments to operations
@@ -256,7 +258,6 @@ update_binary_command(const char* path, ZipArchive* zip, int retry_count,
 }
 
 #else  // !AB_OTA_UPDATER
-
 static int
 update_binary_command(const char* path, ZipArchive* zip, int retry_count,
                       int status_fd, std::vector<std::string>* cmd)
@@ -295,6 +296,42 @@ update_binary_command(const char* path, ZipArchive* zip, int retry_count,
 }
 #endif  // !AB_OTA_UPDATER
 
+static bool update_rkloader(ZipArchive* zip){
+    int bootfd, ret = 0;
+    bool bRet = true;
+    char* loader_bin = "/tmp/RKLoader.bin";
+
+    LOGE("Start to load loader from update.zip\n");
+    const ZipEntry* loader_entry = mzFindZipEntry(zip, LOADER_PATH);
+    if (loader_entry == NULL){
+        LOGE("Can't find %s in update.zip,so don't update loader", LOADER_PATH);
+    }else if (loader_entry != NULL) {
+        LOGE("Find %s for update.zip\n", LOADER_PATH);
+        int bootfd = creat(loader_bin, 0755);
+        if (bootfd < 0){
+            mzCloseZipArchive(zip);
+            LOGE("Can't make %s\n", loader_bin);
+            return false;
+        }
+        bool loader_ok = mzExtractZipEntryToFile(zip, loader_entry, bootfd);
+        if (!loader_ok) {
+            mzCloseZipArchive(zip);
+            LOGE("Can't copy %s\n", loader_bin);
+            return false;
+        }
+        close(bootfd);
+        LOGE("Create loader tmp success %s\n", loader_bin);
+
+        //update loader
+        bRet= do_rk_firmware_upgrade(loader_bin);
+        if(!bRet) {
+            printf("Upgrade loader failed!\n");
+            return false;
+        }
+    }
+    return true;
+}
+
 // If the package contains an update binary, extract it and run it.
 static int
 try_update_binary(const char* path, ZipArchive* zip, bool* wipe_cache,
@@ -306,6 +343,10 @@ try_update_binary(const char* path, ZipArchive* zip, bool* wipe_cache,
     pipe(pipefd);
 
     std::vector<std::string> args;
+
+    if(!update_rkloader(zip))
+        return INSTALL_ERROR;
+
     int ret = update_binary_command(path, zip, retry_count, pipefd[1], &args);
     mzCloseZipArchive(zip);
     if (ret) {

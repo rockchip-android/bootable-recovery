@@ -62,6 +62,8 @@ LOCAL_C_INCLUDES += \
     system/vold \
     system/extras/ext4_utils \
     system/core/adb \
+    external/e2fsprogs/lib \
+
 
 LOCAL_STATIC_LIBRARIES := \
     libbatterymonitor \
@@ -84,7 +86,11 @@ LOCAL_STATIC_LIBRARIES := \
     libselinux \
     libm \
     libc \
-    librk_emmcutils
+    librk_emmcutils \
+    librkupdate \
+    librkrsa \
+    libcutils \
+    libext2_uuid
 
 LOCAL_HAL_STATIC_LIBRARIES := libhealthd
 
@@ -158,4 +164,7 @@ include \
     $(LOCAL_PATH)/uncrypt/Android.mk \
     $(LOCAL_PATH)/updater/Android.mk \
     $(LOCAL_PATH)/update_verifier/Android.mk \
-    $(LOCAL_PATH)/emmcutils/Android.mk
+    $(LOCAL_PATH)/emmcutils/Android.mk \
+    $(LOCAL_PATH)/rkupdate/update/Android.mk \
+    $(LOCAL_PATH)/rkupdate/rsa/Android.mk \
+    $(LOCAL_PATH)/rkupdate/uuid/Android.mk
