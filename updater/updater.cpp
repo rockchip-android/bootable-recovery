@@ -40,6 +40,8 @@ extern bool have_eio_error;
 
 struct selabel_handle *sehandle;
 
+const char* g_package_file;
+
 int main(int argc, char** argv) {
     // Various things log information to stdout or stderr more or less
     // at random (though we've tried to standardize on stdout).  The
@@ -72,6 +74,7 @@ int main(int argc, char** argv) {
     // Extract the script from the package.
 
     const char* package_filename = argv[3];
+    g_package_file = package_filename;
     MemMapping map;
     if (sysMapFile(package_filename, &map) != 0) {
         printf("failed to map package %s\n", argv[3]);

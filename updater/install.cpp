@@ -63,6 +63,8 @@
 #include "wipe.h"
 #endif
 
+extern char* g_package_file;
+
 // Send over the buffer to recovery though the command pipe.
 static void uiPrint(State* state, const std::string& buffer) {
     UpdaterInfo* ui = reinterpret_cast<UpdaterInfo*>(state->cookie);
@@ -1205,6 +1207,196 @@ done:
     return StringValue(result);
 }
 
+//update the parameter partition
+Value* WriteRawParameterImageFn(const char* name, State* state, int argc, Expr* argv[]) {
+    char* result = NULL;
+    char device[100];
+    int emmcEnabled = getEmmcState();
+    bool success;
+    bool isParemeterSame = true;
+    size_t once_len = 16*1024;
+    size_t compared_len = 0;
+    char* old_parameter_buf = reinterpret_cast<char*>(malloc(once_len));
+    struct bootloader_message boot;
+    std::string err;
+    char *partition;
+    char cmd[100] = "recovery\n--update_package=";
+
+    Value* partition_value;
+    Value* contents;
+    if (ReadValueArgs(state, argv, 2, &contents, &partition_value) < 0) {
+        return NULL;
+    }
+
+    if (partition_value->type != VAL_STRING) {
+        ErrorAbort(state, "partition argument to %s must be string", name);
+        goto done;
+    }
+    partition = partition_value->data;
+    if (strlen(partition) == 0) {
+        ErrorAbort(state, "partition argument to %s can't be empty", name);
+        goto done;
+    }
+
+    if (strcmp(partition, "parameter")) {
+        ErrorAbort(state, "partition argument to %s not be parameter", name);
+        goto done;
+    }
+
+    if (contents->type == VAL_STRING) {
+        ErrorAbort(state, "file argument to %s can't support", name);
+        goto done;
+    }
+
+
+    if(emmcEnabled) {
+        transformPath(partition, device);
+        FILE *dest_partition = fopen(device, "rwb");
+        if(dest_partition == NULL) {
+            printf("%s: no emmc partition named \"%s\"\n", name, device);
+            result = strdup("");
+            goto done;
+        }
+
+        //compare the parameter
+        printf("start compare parameter\n");
+        while(compared_len < contents->size) {
+            memset(old_parameter_buf, 0, once_len);
+            size_t read = fread(old_parameter_buf, 1, once_len, dest_partition);
+            if(read != once_len) {
+                printf("read old_parameter error!\n");
+                result = strdup("");
+                goto done;
+            }
+
+            size_t realCompareSize = ((compared_len + read) < contents->size) ? read : (contents->size - compared_len);
+            if(memcmp(contents->data + compared_len, old_parameter_buf, realCompareSize)) {
+                isParemeterSame = false;
+                break;
+            }
+
+            compared_len += read;
+        }
+
+        if(isParemeterSame) {
+            printf("parameter is same, not update!\n");
+            result = partition;
+            goto done;
+        }
+
+        fclose (dest_partition);
+        dest_partition = fopen(device, "wb");
+        if(dest_partition == NULL) {
+            printf("%s: no emmc partition named \"%s\"\n", name, device);
+            result = strdup("");
+            goto done;
+        }
+
+        // update the parameter
+        ssize_t wrote = fwrite(contents->data, 1, contents->size, dest_partition);
+        success = (wrote == contents->size);
+
+        if (!success) {
+            printf("emmc data write to %s failed: %s\n",
+                   device, strerror(errno));
+        }
+        fclose(dest_partition);
+    }else {
+        mtd_scan_partitions();
+        const MtdPartition* mtd = mtd_find_partition_by_name(partition);
+        if (mtd == NULL) {
+            fprintf(stderr, "%s: no mtd partition named \"%s\"\n", name, partition);
+            result = strdup("");
+            goto done;
+        }
+
+        MtdReadContext* ctx_read = mtd_read_partition(mtd);
+        if (ctx_read == NULL) {
+            fprintf(stderr, "%s: can't read mtd partition \"%s\"\n",
+                    name, partition);
+            result = strdup("");
+            goto done;
+        }
+
+        printf("start compare parameter\n");
+        //compare the new parameter and old parameter
+        while(compared_len < contents->size) {
+            memset(old_parameter_buf, 0, once_len);
+            size_t read = mtd_read_data(ctx_read, old_parameter_buf, once_len);
+            if(read != once_len) {
+                printf("read old_parameter error!\n");
+                result = strdup("");
+                mtd_read_close(ctx_read);
+                goto done;
+            }
+
+            size_t realCompareSize = ((compared_len + read) < contents->size) ? read : (contents->size - compared_len);
+            if(memcmp(contents->data + compared_len, old_parameter_buf, realCompareSize)) {
+                isParemeterSame = false;
+                break;
+            }
+
+            compared_len += read;
+        }
+
+        if(isParemeterSame) {
+            printf("parameter is same, not update!\n");
+            result = partition;
+            mtd_read_close(ctx_read);
+            goto done;
+        }
+
+        mtd_read_close(ctx_read);
+
+        //update parameter
+        MtdWriteContext* ctx = mtd_write_partition(mtd);
+        if (ctx == NULL) {
+            printf("%s: can't write mtd partition \"%s\"\n",
+                   name, partition);
+            result = strdup("");
+            goto done;
+        }
+
+        // we're given a blob as the contents
+        ssize_t wrote = mtd_write_data(ctx, contents->data, contents->size);
+        success = (wrote == contents->size);
+
+        if (!success) {
+            printf("mtd_write_data to %s failed: %s\n",
+                   partition, strerror(errno));
+        }
+
+        if (mtd_erase_blocks(ctx, -1) == -1) {
+            printf("%s: error erasing blocks of %s\n", name, partition);
+        }
+        if (mtd_write_close(ctx) != 0) {
+            printf("%s: error closing write of %s\n", name, partition);
+        }
+    }
+
+    result = success ? partition : strdup("");
+
+    printf("the package path is %s\n", g_package_file);
+    memset(&boot, 0, sizeof(boot));
+    strlcpy(boot.command, "boot-recovery", sizeof(boot.command));
+    strcat(cmd, g_package_file);
+    strlcpy(boot.recovery, cmd, sizeof(boot.recovery));
+    //set_bootloader_message(&boot);
+    //if(!write_bootloader_message(boot, &err)){
+    //LOGE("%s\n", err.c_str());
+    //    printf("write_bootloader_message ERROR --- %s\n", err.c_str());
+    //    goto done;
+    //}
+
+    printf("update parameter success, reboot now...\n");
+    android_reboot(ANDROID_RB_RESTART2, 0, "recovery");
+
+done:
+    free(old_parameter_buf);
+    if (result != partition) FreeValue(partition_value);
+    FreeValue(contents);
+    return StringValue(result);
+}
 // apply_patch_space(bytes)
 Value* ApplyPatchSpaceFn(const char* name, State* state,
                          int argc, Expr* argv[]) {
@@ -1664,6 +1856,7 @@ void RegisterInstallFunctions() {
     RegisterFunction("getprop", GetPropFn);
     RegisterFunction("file_getprop", FileGetPropFn);
     RegisterFunction("write_raw_image", WriteRawImageFn);
+    RegisterFunction("write_raw_parameter_image", WriteRawParameterImageFn);
 
     RegisterFunction("apply_patch", ApplyPatchFn);
     RegisterFunction("apply_patch_check", ApplyPatchCheckFn);
