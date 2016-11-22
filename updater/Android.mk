@@ -49,6 +49,7 @@ LOCAL_STATIC_LIBRARIES += libapplypatch libbase libotafault libedify libmtdutils
 LOCAL_STATIC_LIBRARIES += libbz
 LOCAL_STATIC_LIBRARIES += libcutils liblog libc
 LOCAL_STATIC_LIBRARIES += libselinux
+LOCAL_STATIC_LIBRARIES += libbootloader_message libbase
 tune2fs_static_libraries := \
  libext2_com_err \
  libext2_blkid \
