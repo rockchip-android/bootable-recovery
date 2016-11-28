@@ -134,6 +134,11 @@ char* reason = NULL;
 bool modified_flash = false;
 static bool has_cache = false;
 
+// define for preinstall apk
+#define DELETE_APK_LEN 4*1024
+static char *ppre = NULL;
+static int pre_count = 0;
+static const char *DELETEAPKFILE = "/cache/deleteApkFile.dat";
 /*
  * The recovery tool communicates with the main system through /cache files.
  *   /cache/recovery/command - INPUT - command line for tool, one arg per line
@@ -587,6 +592,54 @@ finish_recovery(const char *send_intent) {
     sync();  // For good measure.
 }
 
+static int copyFileToMem(const char *path,char *p,int *count,int size) {
+    char *tmp = p;
+    FILE* fd = fopen_path(path,"r");
+
+    chmod(path,0770);
+    chown(path,1000,1000);
+    if(NULL == fd) {
+        printf("open %s failed %d(%s)\n",path,errno,strerror(errno));
+        return -1;
+    }
+
+    int res = 0;
+    char buf[50] = {0};
+    while((res = fread(buf,1,sizeof(buf),fd)) > 0) {
+        *count += res;
+        if (*count <= size) {
+            memcpy(tmp,buf,res);
+            tmp += res;
+        } else {
+            *count -= res;
+            printf("size overflow");
+            break;
+        }
+    }
+    fclose(fd);
+
+    return 0;
+}
+
+static int copyFileFromMem(const char *path,char *p,int count) {
+    FILE* fd = fopen_path(path,"w+");
+    chmod(path,0770);
+    chown(path,1000,1000);
+
+    if(NULL == fd) {
+        printf("open %s failed %d(%s)\n",path,errno,strerror(errno));
+        return -1;
+    }
+    int res = 0;
+    if ((res = fwrite(p,1,count,fd)) > 0) {
+        printf("write ok\n");
+    }
+
+    fclose(fd);
+
+    return 0;
+}
+
 typedef struct _saved_log_file {
     char* name;
     struct stat st;
@@ -597,6 +650,8 @@ typedef struct _saved_log_file {
 static bool erase_volume(const char* volume) {
     bool is_cache = (strcmp(volume, CACHE_ROOT) == 0);
     bool is_data = (strcmp(volume, DATA_ROOT) == 0);
+
+
 
     ui->SetBackground(RecoveryUI::ERASING);
     ui->SetProgressType(RecoveryUI::INDETERMINATE);
@@ -868,6 +923,20 @@ static bool wipe_data(int should_confirm, Device* device) {
         return false;
     }
 
+    {
+        ppre= (char *)malloc(DELETE_APK_LEN);
+        int res;
+        if(NULL == ppre) {
+            printf("malloc failed\n");
+        } else {
+            memset(ppre,0,DELETE_APK_LEN);
+            res = copyFileToMem(DELETEAPKFILE,ppre,&pre_count,DELETE_APK_LEN);
+            if(res < 0) {
+                printf("copyFileToMem failed\n");
+            }
+        }
+    }
+
     modified_flash = true;
 
     ui->Print("\n-- Wiping data...\n");
@@ -876,6 +945,18 @@ static bool wipe_data(int should_confirm, Device* device) {
         erase_volume("/data") &&
         (has_cache ? erase_volume("/cache") : true) &&
         device->PostWipeData();
+
+    {
+        if(ppre != NULL) {
+            int res = copyFileFromMem(DELETEAPKFILE,ppre,pre_count);
+            if(res < 0) {
+                printf("copyFileFromMem failed\n");
+            }
+            free(ppre);
+            ppre = NULL;
+        }
+    }
+
     ui->Print("Data wipe %s.\n", success ? "complete" : "failed");
     return success;
 }
