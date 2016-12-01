@@ -41,6 +41,7 @@ LOCAL_SRC_FILES := \
     verifier.cpp \
     wear_ui.cpp \
     wear_touch.cpp \
+    rkimage.cpp \
 
 LOCAL_MODULE := recovery
 
@@ -90,6 +91,10 @@ LOCAL_STATIC_LIBRARIES := \
     librkupdate \
     librkrsa \
     libcutils \
+    libedify \
+    libapplypatch \
+    libcrc32 \
+    libotafault \
     libext2_uuid
 
 LOCAL_HAL_STATIC_LIBRARIES := libhealthd
@@ -165,6 +170,7 @@ include \
     $(LOCAL_PATH)/updater/Android.mk \
     $(LOCAL_PATH)/update_verifier/Android.mk \
     $(LOCAL_PATH)/emmcutils/Android.mk \
+    $(LOCAL_PATH)/crc/Android.mk \
     $(LOCAL_PATH)/rkupdate/update/Android.mk \
     $(LOCAL_PATH)/rkupdate/rsa/Android.mk \
     $(LOCAL_PATH)/rkupdate/uuid/Android.mk

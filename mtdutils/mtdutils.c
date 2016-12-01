@@ -172,6 +172,11 @@ bail:
     return -1;
 }
 
+int mtd_get_partition_index(MtdPartition *partition)
+{
+        return partition->device_index;
+}
+
 const MtdPartition *
 mtd_find_partition_by_name(const char *name)
 {
