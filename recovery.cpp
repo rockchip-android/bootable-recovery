@@ -678,7 +678,7 @@ static bool erase_volume(const char* volume) {
             strcat(path, "/");
             int path_len = strlen(path);
             while ((de = readdir(d)) != NULL) {
-                if (strncmp(de->d_name, "last_", 5) == 0 || strcmp(de->d_name, "log") == 0) {
+                if (strncmp(de->d_name, "last_", 5) == 0 || strcmp(de->d_name, "log") == 0 || strncmp(de->d_name, "Recovery_", 9) == 0) {
                     saved_log_file* p = (saved_log_file*) malloc(sizeof(saved_log_file));
                     strcpy(path+path_len, de->d_name);
                     p->name = strdup(path);
