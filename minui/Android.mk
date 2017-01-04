@@ -37,6 +37,10 @@ else
   LOCAL_CFLAGS += -DOVERSCAN_PERCENT=0
 endif
 
+ifeq ($(TARGET_BOARD_PLATFORM_PRODUCT),box)
+  LOCAL_CFLAGS += -DPLATFORM_PRODUCT_BOX
+endif
+
 include $(BUILD_STATIC_LIBRARY)
 
 # Used by OEMs for factory test images.

@@ -73,6 +73,10 @@ static void set_displayed_framebuffer(unsigned n)
     vi.yres_virtual = gr_framebuffer[0].height * 2;
     vi.yoffset = n * gr_framebuffer[0].height;
     vi.bits_per_pixel = gr_framebuffer[0].pixel_bytes * 8;
+#ifdef PLATFORM_PRODUCT_BOX
+    vi.grayscale = 0;
+#endif
+
     if (ioctl(fb_fd, FBIOPUT_VSCREENINFO, &vi) < 0) {
         perror("active fb swap failed");
     }
