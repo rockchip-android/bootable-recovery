@@ -122,13 +122,40 @@ int ensure_path_mounted_at(const char* path, const char* mount_point) {
         }
         return mtd_mount_partition(partition, mount_point, v->fs_type, 0);
     } else if (strcmp(v->fs_type, "ext4") == 0 ||
-               strcmp(v->fs_type, "squashfs") == 0 ||
-               strcmp(v->fs_type, "vfat") == 0) {
+               strcmp(v->fs_type, "squashfs") == 0) {
         result = mount(v->blk_device, mount_point, v->fs_type,
                        v->flags, v->fs_options);
         if (result == 0) return 0;
 
         LOGE("failed to mount %s (%s)\n", mount_point, strerror(errno));
+        return -1;
+    }else if(strcmp(v->fs_type, "vfat") == 0){
+        result = mount(v->blk_device, v->mount_point, v->fs_type,
+                       MS_NOATIME | MS_NODEV | MS_NODIRATIME, "shortname=mixed,utf8");
+        if (result == 0) return 0;
+
+        LOGW("trying mount %s to ntfs\n", v->blk_device);
+        result = mount(v->blk_device, v->mount_point, "ntfs",
+                       MS_NOATIME | MS_NODEV | MS_NODIRATIME, "");
+        if (result == 0) return 0;
+
+        char *sec_dev = v->fs_options;
+        if(sec_dev != NULL) {
+            char *temp = strchr(sec_dev, ',');
+            if(temp) {
+                temp[0] = '\0';
+            }
+
+            result = mount(sec_dev, v->mount_point, v->fs_type,
+                           MS_NOATIME | MS_NODEV | MS_NODIRATIME, "shortname=mixed,utf8");
+            if (result == 0) return 0;
+
+            LOGW("trying mount %s to ntfs\n", sec_dev);
+            result = mount(sec_dev, v->mount_point, "ntfs",
+                           MS_NOATIME | MS_NODEV | MS_NODIRATIME, "");
+            if (result == 0) return 0;
+        }
+        LOGE("failed to mount %s (%s)\n", v->mount_point, strerror(errno));
         return -1;
     }
 
