@@ -27,6 +27,7 @@
 #include <android-base/strings.h>
 
 #include "expr.h"
+#include "emmcutils/rk_emmcutils.h"
 
 // Functions should:
 //
@@ -440,6 +441,11 @@ int ReadValueArgs(State* state, Expr* argv[], int count, ...) {
     int i;
     for (i = 0; i < count; ++i) {
         args[i] = EvaluateValue(state, argv[i]);
+        if(strncmp(args[i]->data, "/dev/block/rknand_", 18)==0){
+            printf("before getDevicePath is : %s\n", args[i]->data);
+            args[i]->data = getDevicePath(args[i]->data);
+            printf("after getDevicePath is : %s\n", args[i]->data);
+        }
         if (args[i] == NULL) {
             va_end(v);
             int j;

@@ -39,6 +39,6 @@ LOCAL_CPPFLAGS += -Wno-deprecated-register
 LOCAL_MODULE := libedify
 LOCAL_CLANG := true
 LOCAL_C_INCLUDES += $(LOCAL_PATH)/..
-LOCAL_STATIC_LIBRARIES += libbase
+LOCAL_STATIC_LIBRARIES += libbase librk_emmcutils
 
 include $(BUILD_STATIC_LIBRARY)

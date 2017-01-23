@@ -1454,15 +1454,15 @@ static Value* PerformBlockImageUpdate(const char* name, State* state, int /* arg
         return StringValue(strdup(""));
     }
 
-    printf("BlockImageUpdateFn: blockdev_filename: %s\n", blockdev_filename->data);
-    char *device = getDevicePath(blockdev_filename->data);
-    printf("BlockImageUpdateFn: after getDevicePath blockdev_filename: %s\n", device);
+    //printf("BlockImageUpdateFn: blockdev_filename: %s\n", blockdev_filename->data);
+    //char *device = getDevicePath(blockdev_filename->data);
+    //printf("BlockImageUpdateFn: after getDevicePath blockdev_filename: %s\n", device);
 
-    params.fd = TEMP_FAILURE_RETRY(open(device, O_RDWR));
+    params.fd = TEMP_FAILURE_RETRY(open(blockdev_filename->data, O_RDWR));
     unique_fd fd_holder(params.fd);
 
     if (params.fd == -1) {
-        fprintf(stderr, "open \"%s\" failed: %s\n", device, strerror(errno));
+        fprintf(stderr, "open \"%s\" failed: %s\n", blockdev_filename->data, strerror(errno));
         return StringValue(strdup(""));
     }
 
@@ -1745,13 +1745,13 @@ Value* RangeSha1Fn(const char* name, State* state, int /* argc */, Expr* argv[])
         return StringValue(strdup(""));
     }
 
-    printf("BlockImageUpdateFn: blockdev_filename: %s\n", blockdev_filename->data);
-    char *device = getDevicePath(blockdev_filename->data);
-    printf("BlockImageUpdateFn: after getDevicePath blockdev_filename: %s\n", device);
-    int fd = open(device, O_RDWR);
+    //printf("BlockImageUpdateFn: blockdev_filename: %s\n", blockdev_filename->data);
+    //char *device = getDevicePath(blockdev_filename->data);
+    //printf("BlockImageUpdateFn: after getDevicePath blockdev_filename: %s\n", device);
+    int fd = open(blockdev_filename->data, O_RDWR);
     unique_fd fd_holder(fd);
     if (fd < 0) {
-        ErrorAbort(state, kFileOpenFailure, "open \"%s\" failed: %s", device,
+        ErrorAbort(state, kFileOpenFailure, "open \"%s\" failed: %s", blockdev_filename->data,
                    strerror(errno));
         return StringValue(strdup(""));
     }
@@ -1765,14 +1765,14 @@ Value* RangeSha1Fn(const char* name, State* state, int /* argc */, Expr* argv[])
     std::vector<uint8_t> buffer(BLOCKSIZE);
     for (size_t i = 0; i < rs.count; ++i) {
         if (!check_lseek(fd, (off64_t)rs.pos[i*2] * BLOCKSIZE, SEEK_SET)) {
-            ErrorAbort(state, kLseekFailure, "failed to seek %s: %s", device,
+            ErrorAbort(state, kLseekFailure, "failed to seek %s: %s", blockdev_filename->data,
                        strerror(errno));
             return StringValue(strdup(""));
         }
 
         for (size_t j = rs.pos[i*2]; j < rs.pos[i*2+1]; ++j) {
             if (read_all(fd, buffer, BLOCKSIZE) == -1) {
-                ErrorAbort(state, kFreadFailure, "failed to read %s: %s", device,
+                ErrorAbort(state, kFreadFailure, "failed to read %s: %s", blockdev_filename->data,
                         strerror(errno));
                 return StringValue(strdup(""));
             }

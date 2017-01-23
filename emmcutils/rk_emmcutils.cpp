@@ -64,18 +64,25 @@ char* getDevicePath(char *mtdDevice) {
     int emmcEnabled = getEmmcState();
     char devicePath[128] = "/";
     if(emmcEnabled) {
+        printf("must free fstab, before use it.\n");
+        fs_mgr_free_fstab(fstab);
+        fstab = NULL;
         if(fstab == NULL) {
             load_volume_table();
+            if(fstab == NULL){
+                printf("getDevicePath: Cannot read fstab.\n");
+                return mtdDevice; 
+            }
         }
         if(strstr(mtdDevice, "/dev/block/rknand_")) {
             strcat(devicePath, mtdDevice+18);
             printf("mtd device %s\n", devicePath);
             Volume* v = volume_for_path(devicePath);
             if (v != NULL) {
-                printf("get volume path %s\n", v->blk_device);
+                printf("getDevicePath: get volume path %s\n", v->blk_device);
                 return v->blk_device;
             }else {
-                printf("Cannot load volume %s!\n", devicePath);
+                printf("getDevicePath: Cannot load volume %s!\n", devicePath);
             }
         }
     }
