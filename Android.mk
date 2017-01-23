@@ -35,6 +35,7 @@ LOCAL_SRC_FILES := \
     fuse_sdcard_provider.cpp \
     install.cpp \
     sdboot.cpp \
+    rktools.cpp \
     recovery.cpp \
     roots.cpp \
     screen_ui.cpp \
