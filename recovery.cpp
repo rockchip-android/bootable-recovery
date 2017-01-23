@@ -69,6 +69,7 @@
 #include "mtdutils/rk29.h"
 #include "rkimage.h"
 #include <fs_mgr.h>
+#include "sdboot.h"
 
 struct selabel_handle *sehandle;
 
@@ -86,6 +87,7 @@ static const struct option OPTIONS[] = {
   { "locale", required_argument, NULL, 'l' },
   { "stages", required_argument, NULL, 'g' },
   { "shutdown_after", no_argument, NULL, 'p' },
+  { "fw_update", required_argument, NULL, 'f'+'w' },
   { "reason", required_argument, NULL, 'r' },
   { "security", no_argument, NULL, 'e'},
   { "wipe_all", no_argument, NULL, 'w'+'a' },
@@ -1643,16 +1645,24 @@ int main(int argc, char **argv) {
     // redirect_stdio should be called only in non-sideload mode. Otherwise
     // we may have two logger instances with different timestamps.
     redirect_stdio(TEMPORARY_LOG_FILE);
+    //freopen("/dev/ttyFIQ0", "a", stdout); setbuf(stdout, NULL);
+    //freopen("/dev/ttyFIQ0", "a", stderr); setbuf(stderr, NULL);
     printf("Starting recovery (pid %d) on %s", getpid(), ctime(&start));
 
     load_volume_table();
+    SDBoot rksdboot;
     has_cache = volume_for_path(CACHE_ROOT) != nullptr;
 
-    get_args(&argc, &argv);
+    if(rksdboot.isSDboot() || rksdboot.isUSBboot()){
+        rksdboot.get_args(&argc, &argv);
+    }else{
+        get_args(&argc, &argv);
+    }
 
     const char *send_intent = NULL;
     const char *update_package = NULL;
     const char *update_rkimage = NULL;
+    char *sdboot_update_package = NULL;
     bool should_wipe_data = false;
     bool should_wipe_all = false;
     bool should_wipe_cache = false;
@@ -1703,6 +1713,11 @@ int main(int argc, char **argv) {
             }
             break;
         }
+        case 'f'+'w': //fw_update
+            if((optarg)&&(!sdboot_update_package)){
+                sdboot_update_package = strdup(optarg);
+            }
+            break;
         case '?':
             LOGE("Invalid command argument\n");
             continue;
@@ -1715,6 +1730,7 @@ int main(int argc, char **argv) {
     printf("locale is [%s]\n", locale);
     printf("stage is [%s]\n", stage);
     printf("reason is [%s]\n", reason);
+
 
     Device* device = make_device();
     ui = device->GetUI();
@@ -1848,6 +1864,24 @@ int main(int argc, char **argv) {
             ui->Print("Installation aborted.\n");
         else
             bAutoUpdateComplete=true;
+    }else if (sdboot_update_package != NULL){
+        printf("bSDBoot = %d, sdboot_update_package=%s\n", rksdboot.isSDboot(), sdboot_update_package);
+        status = rksdboot.do_rk_mode_update(sdboot_update_package);
+        if (status!=INSTALL_SUCCESS){
+            //SET_ERROR_AND_JUMP("fail to update from sd.", status, INSTALL_ERROR, HANDLE_STATUS);
+        }
+        /*
+        if(demo_copy_path){
+            erase_volume(IN_SDCARD_ROOT);
+            if (bSDBoot)
+                status = do_sd_demo_copy(demo_copy_path);
+            else if(bUsbBoot)
+                status = do_usb_demo_copy(demo_copy_path);
+
+            if (status!=INSTALL_SUCCESS){
+                SET_ERROR_AND_JUMP("fail to copy demo.", status, INSTALL_ERROR, HANDLE_STATUS);
+            }
+        }*/
     }else if (should_wipe_data) {
         if (!wipe_data(false, device)) {
             status = INSTALL_ERROR;
@@ -1918,6 +1952,8 @@ int main(int argc, char **argv) {
 
     // Save logs and clean up before rebooting or shutting down.
     finish_recovery(send_intent);
+
+    rksdboot.check_device_remove();
 
     switch (after) {
         case Device::SHUTDOWN:
