@@ -49,6 +49,27 @@ LOCAL_MODULE := recovery
 
 LOCAL_FORCE_STATIC_EXECUTABLE := true
 
+#redirect to SDCARD、CACHE、UART
+#SDCARD: save log to sdcard
+#CACHE: save log to /cache/recovery/ dir
+#UART: redirect log to uart output
+REDIRECT_LOG_TO := UART
+
+ifeq ($(strip $(REDIRECT_LOG_TO)),SDCARD)
+  $(warning *** Redirect log to SDCARD)
+  LOCAL_CFLAGS += -DLogToSDCard
+endif
+
+ifeq ($(strip $(REDIRECT_LOG_TO)),UART)
+  $(warning *** Redirect log to UART)
+  LOCAL_CFLAGS += -DLogToSerial
+endif
+
+ifeq ($(strip $(REDIRECT_LOG_TO)),CACHE)
+  $(warning *** Redirect log to CACHE)
+  LOCAL_CFLAGS += -DLogToCache
+endif
+
 ifeq ($(TARGET_USERIMAGES_USE_F2FS),true)
 ifeq ($(HOST_OS),linux)
 LOCAL_REQUIRED_MODULES := mkfs.f2fs

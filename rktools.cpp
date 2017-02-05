@@ -8,6 +8,9 @@
 #include <iostream>
 #include <string.h>
 #include <stdlib.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <unistd.h>
 #include "sdboot.h"
@@ -61,4 +64,44 @@ char* check_media_package(const char *path){
     }
 
     return NULL;
+}
+/**
+ * 从/proc/cmdline 获取串口的节点
+ *
+*/
+char *getSerial(){
+    char *ans = (char*)malloc(20);
+    char param[1024];
+    int fd, ret;
+    char *s = NULL;
+    fd = open("/proc/cmdline", O_RDONLY);
+    ret = read(fd, (char*)param, 1024);
+    printf("cmdline=%s\n",param);
+    s = strstr(param,"console");
+    if(s == NULL){
+        printf("no found console in cmdline\n");
+        free(ans);
+        ans = NULL;
+        return ans;
+    }else{
+        s = strstr(s, "=");
+        if(s == NULL){
+            free(ans);
+            ans = NULL;
+            return ans;
+        }
+
+        strcpy(ans, "/dev/");
+        char *str = ans + 5;
+        s++;
+        while(*s != ' '){
+            *str = *s;
+            str++;
+            s++;
+        }
+        *str = '\0';
+        printf("read console from cmdline is %s\n", ans);
+    }
+
+    return ans;
 }

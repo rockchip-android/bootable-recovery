@@ -116,6 +116,7 @@ static const char *CACHE_ROOT = "/cache";
 static const char *DATA_ROOT = "/data";
 static const char *SDCARD_ROOT = "/sdcard";
 static const char *TEMPORARY_LOG_FILE = "/tmp/recovery.log";
+static const char *SDCARD_LOG_FILE = "/mnt/external_sd/recovery.log";
 static const char *TEMPORARY_INSTALL_FILE = "/tmp/last_install";
 static const char *LAST_KMSG_FILE = "/cache/recovery/last_kmsg";
 static const char *LAST_LOG_FILE = "/cache/recovery/last_log";
@@ -1645,9 +1646,17 @@ int main(int argc, char **argv) {
 
     // redirect_stdio should be called only in non-sideload mode. Otherwise
     // we may have two logger instances with different timestamps.
+#ifdef LogToCache
     redirect_stdio(TEMPORARY_LOG_FILE);
-    //freopen("/dev/ttyFIQ0", "a", stdout); setbuf(stdout, NULL);
-    //freopen("/dev/ttyFIQ0", "a", stderr); setbuf(stderr, NULL);
+#endif
+
+#ifdef LogToSerial
+    char *SerialName = getSerial();
+    freopen(SerialName, "a", stdout); setbuf(stdout, NULL);
+    freopen(SerialName, "a", stderr); setbuf(stderr, NULL);
+    free(SerialName);
+#endif
+
     printf("Starting recovery (pid %d) on %s", getpid(), ctime(&start));
 
     load_volume_table();
@@ -1659,6 +1668,11 @@ int main(int argc, char **argv) {
     }else{
         get_args(&argc, &argv);
     }
+
+#ifdef LogToSDCard
+    rksdboot.ensure_sd_mounted();
+    redirect_stdio(SDCARD_LOG_FILE);
+#endif
 
     const char *send_intent = NULL;
     const char *update_package = NULL;

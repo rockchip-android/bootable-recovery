@@ -11,4 +11,5 @@
 #define usb_path "/mnt/usb_storage/"
 #define sd_path "/mnt/external_sd/"
 char* check_media_package(const char *path);
+char* getSerial();
 #endif

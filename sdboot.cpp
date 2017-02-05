@@ -408,12 +408,6 @@ void SDBoot::check_device_remove(){
             ui->Print("Doing Actions succeeded.please remove the sdcard......\n");
         else 
             ui->Print("Doing Actions failed!please remove the sdcard......\n");
-        #ifdef LogToSDCard
-        char *kernellogPath = (char *)malloc(100);
-        strcpy(kernellogPath, EX_SDCARD_ROOT);
-        strcat(kernellogPath, "/kernel.txt");
-        save_kernel_log(kernellogPath);
-        #endif
         if (bSDMounted)
             checkSDRemoved();
 
