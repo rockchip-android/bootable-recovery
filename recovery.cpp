@@ -1893,16 +1893,25 @@ int main(int argc, char **argv) {
         if (!wipe_data(false, device)) {
             status = INSTALL_ERROR;
         }
-        /*
+
         if(should_wipe_all) {
+            printf("begin to wipe frp partion!\n");
+            int ret;
+            ret = format_volume("/frp");
+            if(ret<0){
+               printf("wiping frp failed!\n");
+             } else {
+                printf("wiping frp success!\n");
+            }
+            /*
             printf("resize /system \n");
             Volume* v = volume_for_path("/system");
             if(rk_check_and_resizefs(v->blk_device)) {
                 ui->Print("check and resize /system failed!\n");
                 status = INSTALL_ERROR;
             }
+            */
         }
-        */
     } else if (should_wipe_cache) {
         if (!wipe_cache(false, device)) {
             status = INSTALL_ERROR;

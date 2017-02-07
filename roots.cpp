@@ -304,6 +304,26 @@ int format_volume(const char* volume, const char* directory) {
         return 0;
     }
 
+
+    if (strcmp(v->fs_type, "emmc") == 0) {
+        LOGI("format_volume for: fs_type:%s blk_device:%s mount_point:%s \n", v->fs_type, v->blk_device, v->mount_point);
+        int fd = open(v->blk_device, O_WRONLY);
+        if (fd < 0){
+            LOGE("format_volume: failed to open %s\n", v->blk_device);
+            return -1;
+        }
+        uint64_t len = get_block_device_size(fd);
+        LOGI("format_volume:len:%lld \n",len);
+        if(wipe_block_device(fd,len) == 0 ) {
+            LOGI("format_volume: success to format %s\n", v->blk_device);
+            return 0;
+        }
+        else{
+            LOGE("format_volume: fail to format %s\n", v->blk_device);
+            return -1;
+        }
+    }
+
     LOGE("format_volume: fs_type \"%s\" unsupported\n", v->fs_type);
     return -1;
 }
