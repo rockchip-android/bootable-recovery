@@ -118,7 +118,7 @@ static int LoadPartitionContents(const char* filename, FileContents* file) {
     char temp[64];
     if (pieces[0] == "MTD" && emmcEnabled == 0) {
         type = MTD;
-    } else if (pieces[0] == "EMMC" || emmcEnabled == 1) {
+    } else if (pieces[0] == "EMMC" || emmcEnabled == 1 || emmcEnabled == 2) {
         type = EMMC;
     } else {
         printf("LoadPartitionContents called with bad filename (%s)\n", filename);
@@ -326,7 +326,7 @@ int WriteToPartition(const unsigned char* data, size_t len, const char* target) 
     char temp[64];
     if (pieces[0] == "MTD" && emmcEnabled == 0) {
         type = MTD;
-    } else if (pieces[0] == "EMMC" || emmcEnabled == 1) {
+    } else if (pieces[0] == "EMMC" || emmcEnabled == 1 || emmcEnabled == 2) {
         type = EMMC;
     } else {
         printf("LoadPartitionContents called with bad filename (%s)\n", target);
