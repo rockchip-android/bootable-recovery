@@ -45,7 +45,9 @@ void load_volume_table()
     int ret;
 
     int emmcState = getEmmcState();
-    if(emmcState) {
+    if (emmcState == 2) {
+	fstab = fs_mgr_read_fstab("/etc/recovery.nvme.fstab");
+    } else if(emmcState == 1) {
         fstab = fs_mgr_read_fstab("/etc/recovery.emmc.fstab");
     }else {
         fstab = fs_mgr_read_fstab("/etc/recovery.fstab");
