@@ -94,6 +94,7 @@ static const struct option OPTIONS[] = {
   { "wipe_all", no_argument, NULL, 'w'+'a' },
   { "wipe_ab", no_argument, NULL, 0 },
   { "wipe_package_size", required_argument, NULL, 0 },
+  { "resize_partition", required_argument, NULL, 'r'+'p' },
   { NULL, 0, NULL, 0 },
 };
 
@@ -1691,6 +1692,9 @@ int main(int argc, char **argv) {
     int retry_count = 0;
     bool security_update = false;
 
+    const char *resize_partition_path = NULL;
+    int resize_partition = 0;
+
     int arg;
     int option_index;
     while ((arg = getopt_long(argc, argv, "", OPTIONS, &option_index)) != -1) {
@@ -1718,6 +1722,7 @@ int main(int argc, char **argv) {
         case 'r': reason = optarg; break;
         case 'e': security_update = true; break;
         case 'w'+'a': { should_wipe_all = true; should_wipe_data = true; should_wipe_cache = true;} break;
+        case 'r'+'p': { resize_partition = 1; printf("resize_partition = 1!\n");} break;
         case 0: {
             if (strcmp(OPTIONS[option_index].name, "wipe_ab") == 0) {
                 should_wipe_ab = true;
@@ -1903,9 +1908,19 @@ int main(int argc, char **argv) {
                 SET_ERROR_AND_JUMP("fail to copy demo.", status, INSTALL_ERROR, HANDLE_STATUS);
             }
         }*/
-    }else if (should_wipe_data) {
-        if (!wipe_data(false, device)) {
-            status = INSTALL_ERROR;
+    }else if (should_wipe_data || resize_partition) {
+        if (resize_partition != 1){
+            if (!wipe_data(false, device)) {
+                status = INSTALL_ERROR;
+            }
+        }else{
+            printf("resize /data \n");
+            ui->Print("resize /data \n");
+            Volume* v11 = volume_for_path("/data");
+            if(rk_check_and_resizefs(v11->blk_device)) {
+                ui->Print("check and resize /data failed!\n");
+                status = INSTALL_ERROR;
+            }
         }
 
         if(should_wipe_all) {
