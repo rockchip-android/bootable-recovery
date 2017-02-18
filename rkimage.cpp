@@ -309,7 +309,7 @@ int check_image_crc(const char* mtddevname, unsigned long image_size)
 {
 	int size = 32<<9;
 	char buffer[16*1024] = "";
-	unsigned long crc = 0;
+	unsigned int crc = 0;
 	int remain = image_size;
 	int read_count = 0;
 	int r=0;
@@ -350,10 +350,10 @@ int check_image_crc(const char* mtddevname, unsigned long image_size)
     file_offset += read_count;
     
 	close(fdread);
-	if( crc != *(unsigned long*)buffer )
+	if( crc != *(unsigned int*)buffer )
 	{
 		LOGE("Check failed\n");
-        	LOGI("crc = %04lx  buffer=%04lx \n", crc, *(unsigned long*)buffer);
+        	LOGI("crc = %04lx  buffer=%04lx \n", crc, *(unsigned int*)buffer);
 		return -1;
 	}
 
