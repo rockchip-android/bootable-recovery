@@ -166,15 +166,15 @@ int ensure_path_mounted_at(const char* path, const char* mount_point) {
 }
 
 int ensure_path_mounted(const char* path) {
+    if(strncmp(path, "/mnt/usb_storage", 16) == 0) {
+        printf("the path is already mounted!\n");
+        return 0;
+    }
     // Mount at the default mount point.
     return ensure_path_mounted_at(path, nullptr);
 }
 
 int ensure_path_unmounted(const char* path) {
-    if(strncmp(path, "/mnt/usb_storage", 16) == 0) {
-        printf("the path is already mounted!\n");
-        return 0;
-    }
     Volume* v = volume_for_path(path);
     if (v == NULL) {
         LOGE("unknown volume for path [%s]\n", path);
