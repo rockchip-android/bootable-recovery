@@ -15,7 +15,7 @@
  */
 
 #include "device.h"
-
+#define KEY_CENTER 232
 static const char* MENU_ITEMS[] = {
     "Reboot system now",
     "Reboot to bootloader",
@@ -76,6 +76,7 @@ int Device::HandleMenuKey(int key, int visible) {
 
     case KEY_ENTER:
     case KEY_POWER:
+    case KEY_CENTER:
       return kInvokeItem;
 
     default:
