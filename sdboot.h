@@ -33,6 +33,7 @@ public:
     void ensure_sd_mounted();
     int do_rk_mode_update(const char *pFile);
     void check_device_remove();
+    int do_rk_factory_mode();
 private:
     int status;
     bool bSDBoot;

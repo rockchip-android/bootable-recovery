@@ -17,6 +17,8 @@
 #include <dirent.h>
 #include <sys/mount.h> 
 #include <cutils/properties.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 #include "common.h"
 #include "sdboot.h"
 #include "roots.h"
@@ -399,6 +401,37 @@ int SDBoot::do_rk_mode_update(const char *pFile){
         printf("UsbBoot optarg=%s\n", optarg);
         status = do_usb_mode_update(pFile);
     } 
+    return status;
+}
+
+int SDBoot::do_rk_factory_mode(){
+    //pcba_test
+    printf("enter pcba test!\n");
+
+    const char *args[2];
+    args[0] = "/sbin/pcba_core";
+    args[1] = NULL;
+
+    pid_t child = fork();
+    if (child == 0) {
+        execv(args[0], (char* const*)args);
+        fprintf(stderr, "run_program: execv failed: %s\n", strerror(errno));
+        status = INSTALL_ERROR;
+        //pcbaTestPass = false;
+    }
+    int child_status;
+    waitpid(child, &child_status, 0);
+    if (WIFEXITED(child_status)) {
+        if (WEXITSTATUS(child_status) != 0) {
+            printf("pcba test error coder is %d \n", WEXITSTATUS(child_status));
+            status = INSTALL_ERROR;
+            //pcbaTestPass = false;
+        }
+    } else if (WIFSIGNALED(child_status)) {
+        printf("run_program: child terminated by signal %d\n", WTERMSIG(child_status));
+        status = INSTALL_ERROR;
+        //pcbaTestPass = false;
+    }
     return status;
 }
 void SDBoot::check_device_remove(){
