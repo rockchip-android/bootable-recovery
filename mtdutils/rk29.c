@@ -113,6 +113,27 @@ int rk_check_and_resizefs(const char *filename) {
     return result;
 }
 
+int rk_check_and_resizefs_f2fs(const char *filename) {
+	int result;
+
+	const char *const e2fsck_argv[] = { "/sbin/fsck_f2fs", filename, NULL };
+	const char *const resizefs_argv[] = { "/sbin/resize.f2fs", filename, NULL  };
+	printf("fsck_f2fs check '%s' 11111111111111!\n", filename);
+	result = run(e2fsck_argv[0], (char **) e2fsck_argv);
+	if(result) {
+		printf("fsck_f2fs check '%s' failed!\n", filename);
+		return result;
+	}
+
+	result = run(resizefs_argv[0], (char **) resizefs_argv);
+	if(result) {
+		printf("resize.f2fs '%s' failed!\n", filename);
+	}
+
+	return result;
+}
+
+
 int rk_make_ext3fs(const char *filename)
 {
     int result;

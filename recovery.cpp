@@ -1754,7 +1754,6 @@ int main(int argc, char **argv) {
     printf("stage is [%s]\n", stage);
     printf("reason is [%s]\n", reason);
 
-
     Device* device = make_device();
     ui = device->GetUI();
     gCurrentUI = ui;
@@ -1922,11 +1921,19 @@ int main(int argc, char **argv) {
             printf("resize /data \n");
             ui->Print("resize /data \n");
             Volume* v11 = volume_for_path("/data");
-            if(rk_check_and_resizefs(v11->blk_device)) {
-                ui->Print("check and resize /data failed!\n");
-                status = INSTALL_ERROR;
-            }
-        }
+	    if(strcmp(v11->fs_type, "f2fs") == 0){
+		if(rk_check_and_resizefs_f2fs(v11->blk_device)) {
+			ui->Print("check and resize /data failed!\n");
+			printf("check and resize /data failed!\n");
+			status = INSTALL_ERROR;
+		}
+            }else{
+		if(rk_check_and_resizefs(v11->blk_device)) {
+			ui->Print("check and resize /data failed!\n");
+			status = INSTALL_ERROR;
+		}
+	    }
+	}
 
         if(should_wipe_all) {
             printf("begin to wipe frp partion!\n");
