@@ -448,6 +448,17 @@ static int read_partition(int fd, off_t offset, char* data, int size)
     return 0;
 }
 
+void trim(char *strIn, char *strOut){
+    int i, j;
+    i = 0;
+    j = strlen(strIn) - 1;
+    while(strIn[i] == ' ')
+        ++i;
+    while(strIn[j] == ' ')
+        --j;
+    strncpy(strOut, strIn + i , j - i + 1);
+    strOut[j - i + 1] = '\0';
+}
 
 /*
     success return 0
@@ -507,6 +518,8 @@ static int CheckImageFile(const char* path, RKIMAGE_HDR* hdr)
         LOGE("Not found local model!\n");
         return -4;
     }
+    trim(model, model);
+    trim(hdr->machine_model, hdr->machine_model);
     LOGI("Local model: %s\nUpdate model: %s\n", model, hdr->machine_model);
     if(strcmp(model, hdr->machine_model))
     {
