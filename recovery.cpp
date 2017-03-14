@@ -1944,14 +1944,16 @@ int main(int argc, char **argv) {
              } else {
                 printf("wiping frp success!\n");
             }
-            /*
-            printf("resize /system \n");
-            Volume* v = volume_for_path("/system");
-            if(rk_check_and_resizefs(v->blk_device)) {
-                ui->Print("check and resize /system failed!\n");
-                status = INSTALL_ERROR;
-            }
-            */
+#ifdef CHECK_SYSTEM_PARTITION
+		    printf("update package complete and check /system \n");
+		    Volume* v = volume_for_path("/system");
+		    const char *const e2fsck_argv[] = { "/sbin/e2fsck", "-fy", v->blk_device, NULL };
+		    if (run(e2fsck_argv[0], (char **) e2fsck_argv)) {
+		        ui->Print("e2fsck check '%s' failed!\n", v->blk_device);
+		        ui->Print("ota complete check /system failed!\n");
+		        status = INSTALL_ERROR;
+		    }
+#endif
         }
     } else if (should_wipe_cache) {
         if (!wipe_cache(false, device)) {
