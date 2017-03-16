@@ -44,6 +44,10 @@ LOCAL_STATIC_LIBRARIES += \
     libz
 endif
 
+ifeq ($(PRODUCT_BUILD_MODULE),px3car)
+  LOCAL_CFLAGS += -DDisableSelinux
+endif
+
 LOCAL_STATIC_LIBRARIES += $(TARGET_RECOVERY_UPDATER_LIBS) $(TARGET_RECOVERY_UPDATER_EXTRA_LIBS)
 LOCAL_STATIC_LIBRARIES += libapplypatch libbase libotafault libedify libmtdutils libminzip libz
 LOCAL_STATIC_LIBRARIES += libbz
