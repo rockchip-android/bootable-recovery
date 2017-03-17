@@ -15,6 +15,10 @@
 #include <unistd.h>
 #include "sdboot.h"
 #include "rktools.h"
+#include <fs_mgr.h>
+#include "roots.h"
+#include "common.h"
+
 using namespace std;
 char* check_media_package(const char *path){
     char *reallyPath;
@@ -104,4 +108,33 @@ char *getSerial(){
     }
 
     return ans;
+}
+
+/**
+ * reset hdmi after restore factory.
+*/
+int erase_baseparamer() {
+    Volume* v = volume_for_path(BASEPARAMER_PARTITION_NAME);
+    if (v == NULL) {
+        printf("unknown volume baseparamer, not erase baseparamer\n");
+        return -1;
+    }
+
+    int file;
+    file = open(v->blk_device, O_RDWR);
+    if (file < 0){
+        printf("baseparamer file can not be opened");
+        return -1;
+    }
+    lseek(file, 0L, SEEK_SET);
+
+    //size of baseparamer.
+    char buf[BASEPARAMER_PARTITION_SIZE];
+    memset(buf, 0, BASEPARAMER_PARTITION_SIZE);
+
+    write(file, (char*)(&buf), BASEPARAMER_PARTITION_SIZE);
+    close(file);
+    sync();
+
+    return 0;
 }
