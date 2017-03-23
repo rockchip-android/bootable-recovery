@@ -217,7 +217,51 @@ static int exec_cmd(const char* path, char* const argv[]) {
     return WEXITSTATUS(status);
 }
 
+int run(const char *filename, char *const argv[])
+{
+    struct stat s;
+    int status;
+    pid_t pid;
+
+    if (stat(filename, &s) != 0) {
+        fprintf(stderr, "cannot find '%s'", filename);
+        return -1;
+    }
+
+    printf("executing '%s'\n", filename);
+
+    pid = fork();
+
+    if (pid == 0) {
+        setpgid(0, getpid());
+        /* execute */
+        execv(filename, argv);
+        fprintf(stderr, "can't run %s (%s)\n", filename, strerror(errno));
+        /* exit */
+        _exit(0);
+    }
+
+    if (pid < 0) {
+        fprintf(stderr, "failed to fork and start '%s'\n", filename);
+        return -1;
+    }
+
+    if (-1 == waitpid(pid, &status, WCONTINUED | WUNTRACED)) {
+        fprintf(stderr, "wait for child error\n");
+        return -1;
+    }
+
+    if (WIFEXITED(status)) {
+        printf("executed '%s' done\n", filename);
+    }
+
+    printf("executed '%s' return %d\n", filename, WEXITSTATUS(status));
+    return 0;
+}
+
 int format_volume(const char* volume, const char* directory) {
+
+
     Volume* v = volume_for_path(volume);
     if (v == NULL) {
         LOGE("unknown volume \"%s\"\n", volume);
@@ -284,6 +328,16 @@ int format_volume(const char* volume, const char* directory) {
         int result;
         if (strcmp(v->fs_type, "ext4") == 0) {
             result = make_ext4fs_directory(v->blk_device, length, volume, sehandle, directory);
+            /* check the ext4 filesystem */
+            if (strcmp(volume, "/data") == 0) {
+                const char *const e2fsck_argv[] = { "/sbin/e2fsck", "-fy", v->blk_device, NULL };
+                printf("e2fsck check '%s' filesystem\n", v->blk_device);
+                result = run(e2fsck_argv[0], (char **) e2fsck_argv);
+                if(result) {
+                    printf("e2fsck check '%s' fail!\n", v->blk_device);
+                    return result;
+                }
+            }
         } else {   /* Has to be f2fs because we checked earlier. */
             if (v->key_loc != NULL && strcmp(v->key_loc, "footer") == 0 && length < 0) {
                 LOGE("format_volume: crypt footer + negative length (%zd) not supported on %s\n", length, v->fs_type);
