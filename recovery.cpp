@@ -577,6 +577,7 @@ finish_recovery(const char *send_intent) {
         LOGE("%s\n", err.c_str());
     }
     if (bAutoUpdateComplete==true) {
+        stopLed(ON_VALUE);
         FILE *fp = fopen_path(FLAG_FILE, "w");
         if (fp == NULL) {
             LOGE("Can't open %s\n", FLAG_FILE);
@@ -588,6 +589,8 @@ finish_recovery(const char *send_intent) {
         }
         fclose(fp);
         bAutoUpdateComplete=false;
+    }else{
+        stopLed(OFF_VALUE);
     }
 
     // Remove the command file, so recovery won't repeat indefinitely.
@@ -1847,6 +1850,7 @@ int main(int argc, char **argv) {
             const char *reallyPath = check_media_package(update_package);
             if(reallyPath == NULL)
                 reallyPath = update_package;
+            startLed();
             status = install_package(reallyPath, &should_wipe_cache,
                                      TEMPORARY_INSTALL_FILE, true, retry_count);
             if (status == INSTALL_SUCCESS && should_wipe_cache) {
@@ -1887,18 +1891,23 @@ int main(int argc, char **argv) {
         const char *reallyPath = check_media_package(update_rkimage);
         if(reallyPath == NULL)
             reallyPath = update_rkimage;
+        startLed();
         status = install_rkimage(reallyPath);
         if (status != INSTALL_SUCCESS)
             ui->Print("Installation aborted.\n");
         else
             bAutoUpdateComplete=true;
     }else if (factory_mode != NULL){
-       status = rksdboot.do_rk_factory_mode();
+        status = rksdboot.do_rk_factory_mode();
     }else if (sdboot_update_package != NULL){
         printf("bSDBoot = %d, sdboot_update_package=%s\n", rksdboot.isSDboot(), sdboot_update_package);
+        startLed();
         status = rksdboot.do_rk_mode_update(sdboot_update_package);
         if (status!=INSTALL_SUCCESS){
             //SET_ERROR_AND_JUMP("fail to update from sd.", status, INSTALL_ERROR, HANDLE_STATUS);
+            bAutoUpdateComplete = false;
+        }else{
+            bAutoUpdateComplete = true;
         }
         /*
         if(demo_copy_path){
