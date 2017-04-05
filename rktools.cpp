@@ -13,11 +13,16 @@
 #include <fcntl.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <pthread.h>
 #include "sdboot.h"
 #include "rktools.h"
 #include <fs_mgr.h>
 #include "roots.h"
 #include "common.h"
+
+static bool isLedFlash = false;
+static pthread_t tid;
+static int last_state = 0;
 
 using namespace std;
 char* check_media_package(const char *path){
@@ -137,4 +142,68 @@ int erase_baseparamer() {
     sync();
 
     return 0;
+}
+
+
+void *thrd_led_func(void *arg) {
+    FILE * ledFd = NULL;
+    bool onoff = false;
+    char real_net_file_path[128] = "\0";
+    if((ledFd = fopen(NET_FILE_PATH, "w")) != NULL){
+        strcpy(real_net_file_path, NET_FILE_PATH);
+        fclose(ledFd);
+    }else if((ledFd = fopen(NET_FILE_PATH_NEW, "w")) != NULL){
+        strcpy(real_net_file_path, NET_FILE_PATH_NEW);
+        fclose(ledFd);
+    }
+
+    while(isLedFlash) {
+        ledFd = fopen(real_net_file_path, "w");
+        if(ledFd == NULL)
+        {
+            usleep(500 * 1000);
+            continue;
+        }
+        if(onoff) {
+            fprintf(ledFd, "%d", OFF_VALUE);
+            onoff = false;
+        }else {
+            fprintf(ledFd, "%d", ON_VALUE);
+            onoff = true;
+        }
+
+        fclose(ledFd);
+        usleep(500 * 1000);
+    }
+
+    printf("stopping led thread, close led and exit\n");
+
+    ledFd = fopen(real_net_file_path, "w");
+    if(ledFd != NULL){
+        fprintf(ledFd, "%d", last_state);
+        fclose(ledFd);
+    }
+    pthread_exit(NULL);
+    return NULL;
+}
+
+void startLed() {
+    isLedFlash = true;
+    if (pthread_create(&tid,NULL,thrd_led_func,NULL)!=0) {
+        printf("Create led thread error!\n");
+    }
+
+    printf("tid in led pthread: %ld.\n",tid);
+}
+
+void stopLed(int state) {
+    last_state = state;
+    void *tret;
+    isLedFlash = false;
+
+    if (pthread_join(tid, &tret)!=0){
+        printf("Join led thread error!\n");
+    }else {
+        printf("join led thread success!\n");
+    }
 }
