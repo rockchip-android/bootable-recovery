@@ -60,6 +60,8 @@
 #include "tune2fs.h"
 #include "emmcutils/rk_emmcutils.h"
 
+#include "rkupdate/Upgrade.h"
+
 #ifdef USE_EXT4
 #include "make_ext4fs.h"
 #include "wipe.h"
@@ -1859,6 +1861,50 @@ Value* Tune2FsFn(const char* name, State* state, int argc, Expr* argv[]) {
     return StringValue(strdup("t"));
 }
 
+Value* WriteRawLoaderImageFn(const char* name, State* state, int argc, Expr* argv[]) {
+
+    ZipArchive* zip = ((UpdaterInfo*)(state->cookie))->package_zip;
+
+    int bootfd, ret = 0;
+    bool bRet = true;
+    const char* loader_path = "RKLoader.bin";
+    char* loader_bin = "/tmp/RKLoader.bin";
+
+    printf("Start to load loader from update.zip\n");
+    const ZipEntry* loader_entry = mzFindZipEntry(zip, loader_path);
+    if (loader_entry == NULL){
+        printf("Can't find %s in update.zip,so don't update loader", loader_path);
+        bRet = false;
+        goto done;
+    }else if (loader_entry != NULL) {
+        printf("Find %s for update.zip\n", loader_path);
+        int bootfd = creat(loader_bin, 0755);
+        if (bootfd < 0){
+            mzCloseZipArchive(zip);
+            printf("Can't make %s\n", loader_bin);
+            bRet = false;
+            goto done;
+        }
+        bool loader_ok = mzExtractZipEntryToFile(zip, loader_entry, bootfd);
+        if (!loader_ok) {
+            mzCloseZipArchive(zip);
+            printf("Can't copy %s\n", loader_bin);
+            bRet = false;
+            goto done;
+        }
+        close(bootfd);
+        printf("Create loader tmp success %s\n", loader_bin);
+
+        //update loader
+        bRet= do_rk_firmware_upgrade(loader_bin);
+        if(!bRet) {
+            printf("Upgrade loader failed!\n");
+            goto done;
+        }
+    }
+done:
+    return StringValue(strdup(bRet ? "t" : ""));
+}
 void RegisterInstallFunctions() {
     RegisterFunction("mount", MountFn);
     RegisterFunction("is_mounted", IsMountedFn);
@@ -1888,6 +1934,7 @@ void RegisterInstallFunctions() {
     RegisterFunction("file_getprop", FileGetPropFn);
     RegisterFunction("write_raw_image", WriteRawImageFn);
     RegisterFunction("write_raw_parameter_image", WriteRawParameterImageFn);
+    RegisterFunction("write_raw_loader_image", WriteRawLoaderImageFn);
 
     RegisterFunction("apply_patch", ApplyPatchFn);
     RegisterFunction("apply_patch_check", ApplyPatchCheckFn);
