@@ -54,6 +54,8 @@
 #include "radical_update.h"
 #endif
 
+#include "./rkupdate/Upgrade.h"
+
 extern bool gIfBoardIdCustom;
 
 
@@ -610,13 +612,14 @@ int open_partition_path(const char *part_name, int mode, char* path) {
 int write_loader(const char* src, const char* dest, int woffset)
 {
     RKIMAGE_HDR *hdr = &g_imagehdr;
-    int fd_src, fd_dest;
+    int fd_src, fd_dest, fd_loader;
     bool dest_is_file = false;
     char destpath[PATH_MAX];
     char old_loader[MAX_LOADER_LEN] = "";
     char new_loader[MAX_LOADER_LEN] = "";
     char *buff;
     int new_loader_size = 0;
+    char* loader_bin = "/tmp/RKLoader.bin";
 
     LOGI("src=%s  dest=%s  offset=%d\n", src, dest, woffset);
     
@@ -647,8 +650,27 @@ int write_loader(const char* src, const char* dest, int woffset)
         LOGE("Read failed(%s)\n", strerror(errno));
         return -4;
     }
-    close(fd_src);
 
+    fd_loader = creat(loader_bin, 0755);
+    if (fd_loader < 0){
+        LOGE("Can't make %s\n", loader_bin);
+        return -4;
+    }
+
+    if(write(fd_loader, old_loader, pItem->size) != pItem->size){
+        LOGE("Can't write to %s.\n", loader_bin);
+        return -4;
+    }
+    close(fd_loader);
+
+    if(!do_rk_firmware_upgrade(loader_bin)){
+        LOGE("do_rk_firmware_upgrade failed.");
+        return -4;
+    }
+    close(fd_src);
+    sync();
+
+    /*
 // create new loader data
 	if ( (*(unsigned int*)old_loader)==0x544F4F42 )
     {// new Loader
@@ -703,7 +725,7 @@ int write_loader(const char* src, const char* dest, int woffset)
         LOGE("Check failed!\n");
         return -9;
     }
-    
+    */
 	return 0;
 }
 
@@ -2157,12 +2179,12 @@ int install_rkimage(const char* update_file) {
 	ui->SetProgress(0.9);
 // Write to misc command, makes the loader after launching the upgrade their own, new bootloader data in order to behind
     ui->Print("copy Bootloader...\n");
-    sprintf(boot.command, "bootloader");
-    sprintf(boot.recovery, "update-bootloader");
-    if (!write_bootloader_message(boot, &err)) {
-        LOGE("%s\n", err.c_str());
-        goto update_error;
-    }
+    //sprintf(boot.command, "bootloader");
+    //sprintf(boot.recovery, "update-bootloader");
+    //if (!write_bootloader_message(boot, &err)) {
+    //    LOGE("%s\n", err.c_str());
+    //    goto update_error;
+    //}
 	result = write_loader("bootloader", "/misc", 3*16*1024);
     if( result ) {
 	    ui->Print("Failed(%d)\n", result);
