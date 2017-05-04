@@ -116,7 +116,7 @@ static const char *CONVERT_FBE_DIR = "/tmp/convert_fbe";
 static const char *CONVERT_FBE_FILE = "/tmp/convert_fbe/convert_fbe";
 static const char *CACHE_ROOT = "/cache";
 static const char *DATA_ROOT = "/data";
-static const char *SDCARD_ROOT = "/sdcard";
+static const char *SDCARD_ROOT = "/mnt/external_sd";
 static const char *TEMPORARY_LOG_FILE = "/tmp/recovery.log";
 static const char *SDCARD_LOG_FILE = "/mnt/external_sd/recovery.log";
 static const char *TEMPORARY_INSTALL_FILE = "/tmp/last_install";
@@ -1277,7 +1277,9 @@ static int apply_from_sdcard(Device* device, bool* wipe_cache) {
             }
         }
 
-        result = install_package(FUSE_SIDELOAD_HOST_PATHNAME, wipe_cache,
+        //result = install_package(FUSE_SIDELOAD_HOST_PATHNAME, wipe_cache,
+        //                         TEMPORARY_INSTALL_FILE, false, 0/*retry_count*/);
+        result = install_package("/mnt/external_sd/update.zip", wipe_cache,
                                  TEMPORARY_INSTALL_FILE, false, 0/*retry_count*/);
         break;
     }
