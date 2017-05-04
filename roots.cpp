@@ -409,6 +409,11 @@ int setup_install_mounts() {
             }
 
         } else {
+            if (strcmp(v->mount_point, "/mnt/external_sd") ==0 ||
+                strcmp(v->mount_point, "/mnt/usb_storage") == 0) {
+                LOGE("setup_install_mounts, expect %s\n", v->mount_point);
+                continue;
+            }
             if (ensure_path_unmounted(v->mount_point) != 0) {
                 LOGE("failed to unmount %s\n", v->mount_point);
                 return -1;
