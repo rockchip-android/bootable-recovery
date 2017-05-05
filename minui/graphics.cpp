@@ -49,9 +49,46 @@ static unsigned char gr_current_a = 255;
 
 static GRSurface* gr_draw = NULL;
 
+//撤销旋转
+void back_no_rotate(){
+#ifdef RotateScreen_90
+    rk_rotate_surface_270(gr_draw, gr_draw->width, gr_draw->height);
+#elif defined RotateScreen_180
+    rk_rotate_surface_180(gr_draw);
+#elif defined RotateScreen_270
+    rk_rotate_surface_90(gr_draw, gr_draw->width, gr_draw->height);
+#endif
+}
+
+static unsigned int gr_get_draw_width(GRSurface* surface) {
+    if (surface == NULL) {
+        return 0;
+    }
+#if (defined RotateScreen_90) || (defined RotateScreen_270)
+    return surface->height;
+#endif
+    return surface->width;
+}
+
+static unsigned int gr_get_draw_height(GRSurface* surface) {
+    if (surface == NULL) {
+        return 0;
+    }
+#if (defined RotateScreen_90) || (defined RotateScreen_270)
+    return surface->width;
+#endif
+    return surface->height;
+}
+
+static unsigned int gr_get_row_bytes(GRSurface* surface){
+    if(surface == NULL){
+        return 0;
+    }
+    return gr_get_draw_width(surface) * 4;
+}
 static bool outside(int x, int y)
 {
-    return x < 0 || x >= gr_draw->width || y < 0 || y >= gr_draw->height;
+    return x < 0 || x >= gr_get_draw_width(gr_draw) || y < 0 || y >= gr_get_draw_height(gr_draw);
 }
 
 const GRFont* gr_sys_font()
@@ -121,11 +158,9 @@ void gr_text(const GRFont* font, int x, int y, const char *s, bool bold)
 
         unsigned char* src_p = font->texture->data + ((ch - ' ') * font->char_width) +
                                (bold ? font->char_height * font->texture->row_bytes : 0);
-        unsigned char* dst_p = gr_draw->data + y*gr_draw->row_bytes + x*gr_draw->pixel_bytes;
 
-        text_blend(src_p, font->texture->row_bytes,
-                   dst_p, gr_draw->row_bytes,
-                   font->char_width, font->char_height);
+        unsigned char* dst_p = gr_draw->data + y*gr_get_row_bytes(gr_draw) + x*gr_draw->pixel_bytes;
+        text_blend(src_p, font->texture->row_bytes,dst_p, gr_get_row_bytes(gr_draw),font->char_width, font->char_height);
 
         x += font->char_width;
     }
@@ -145,10 +180,10 @@ void gr_texticon(int x, int y, GRSurface* icon) {
     if (outside(x, y) || outside(x+icon->width-1, y+icon->height-1)) return;
 
     unsigned char* src_p = icon->data;
-    unsigned char* dst_p = gr_draw->data + y*gr_draw->row_bytes + x*gr_draw->pixel_bytes;
+    unsigned char* dst_p = gr_draw->data + y*gr_get_row_bytes(gr_draw) + x*gr_draw->pixel_bytes;
 
     text_blend(src_p, icon->row_bytes,
-               dst_p, gr_draw->row_bytes,
+               dst_p, gr_get_row_bytes(gr_draw),
                icon->width, icon->height);
 }
 
@@ -195,7 +230,7 @@ void gr_fill(int x1, int y1, int x2, int y2)
 
     if (outside(x1, y1) || outside(x2-1, y2-1)) return;
 
-    unsigned char* p = gr_draw->data + y1 * gr_draw->row_bytes + x1 * gr_draw->pixel_bytes;
+    unsigned char* p = gr_draw->data + y1 * gr_get_row_bytes(gr_draw) + x1 * gr_draw->pixel_bytes;
     if (gr_current_a == 255) {
         int x, y;
         for (y = y1; y < y2; ++y) {
@@ -206,7 +241,7 @@ void gr_fill(int x1, int y1, int x2, int y2)
                 *px++ = gr_current_b;
                 px++;
             }
-            p += gr_draw->row_bytes;
+            p += gr_get_row_bytes(gr_draw);
         }
     } else if (gr_current_a > 0) {
         int x, y;
@@ -221,7 +256,7 @@ void gr_fill(int x1, int y1, int x2, int y2)
                 ++px;
                 ++px;
             }
-            p += gr_draw->row_bytes;
+            p += gr_get_row_bytes(gr_draw);
         }
     }
 }
@@ -237,16 +272,22 @@ void gr_blit(GRSurface* source, int sx, int sy, int w, int h, int dx, int dy) {
     dx += overscan_offset_x;
     dy += overscan_offset_y;
 
-    if (outside(dx, dy) || outside(dx+w-1, dy+h-1)) return;
+    while (outside(dx, dy) || outside(dx+w-1, dy+h-1)){
+        return ;
+        w = w - 4;
+        if(outside(dx, dy)){
+            return ;
+        }
+    }
 
     unsigned char* src_p = source->data + sy*source->row_bytes + sx*source->pixel_bytes;
-    unsigned char* dst_p = gr_draw->data + dy*gr_draw->row_bytes + dx*gr_draw->pixel_bytes;
+    unsigned char* dst_p = gr_draw->data + dy*gr_get_row_bytes(gr_draw) + dx*gr_draw->pixel_bytes;
 
     int i;
     for (i = 0; i < h; ++i) {
         memcpy(dst_p, src_p, w * source->pixel_bytes);
         src_p += source->row_bytes;
-        dst_p += gr_draw->row_bytes;
+        dst_p += gr_get_row_bytes(gr_draw);
     }
 }
 
@@ -413,12 +454,12 @@ void gr_exit(void)
 
 int gr_fb_width(void)
 {
-    return gr_draw->width - 2*overscan_offset_x;
+    return (gr_get_draw_width(gr_draw) - 2*overscan_offset_x);
 }
 
 int gr_fb_height(void)
 {
-    return gr_draw->height - 2*overscan_offset_y;
+    return (gr_get_draw_height(gr_draw) - 2*overscan_offset_y);
 }
 
 void gr_fb_blank(bool blank)

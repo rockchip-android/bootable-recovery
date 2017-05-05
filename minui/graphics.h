@@ -40,4 +40,8 @@ minui_backend* open_fbdev();
 minui_backend* open_adf();
 minui_backend* open_drm();
 
+void rk_rotate_surface_90(GRSurface* surface, int width, int height);
+void rk_rotate_surface_180(GRSurface* surface);
+void rk_rotate_surface_270(GRSurface* surface, int width, int height);
+
 #endif

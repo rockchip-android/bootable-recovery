@@ -31,6 +31,24 @@ ifeq ($(subst ",,$(TARGET_RECOVERY_PIXEL_FORMAT)),BGRA_8888)
   LOCAL_CFLAGS += -DRECOVERY_BGRA
 endif
 
+#rotate screen to 0, 90, 180, 270
+#0:   rotate_0
+#90:  rotate_90
+#180: rotate_180
+#270: rotate_270
+ifeq ($(strip $(ROTATE_SCREEN)), rotate_0)
+  LOCAL_CFLAGS += -DRotateScreen_0
+endif
+ifeq ($(strip $(ROTATE_SCREEN)), rotate_90)
+  LOCAL_CFLAGS += -DRotateScreen_90
+endif
+ifeq ($(strip $(ROTATE_SCREEN)), rotate_180)
+  LOCAL_CFLAGS += -DRotateScreen_180
+endif
+ifeq ($(strip $(ROTATE_SCREEN)), rotate_270)
+  LOCAL_CFLAGS += -DRotateScreen_270
+endif
+
 ifneq ($(TARGET_RECOVERY_OVERSCAN_PERCENT),)
   LOCAL_CFLAGS += -DOVERSCAN_PERCENT=$(TARGET_RECOVERY_OVERSCAN_PERCENT)
 else

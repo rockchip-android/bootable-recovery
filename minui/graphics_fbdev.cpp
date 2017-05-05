@@ -53,6 +53,74 @@ static minui_backend my_backend = {
     .exit = fbdev_exit,
 };
 
+void rk_rotate_surface_90(GRSurface* surface, int width, int height){
+    int byt = 4; // 4 byte for ARGB_8888 (2 byte for RGB_565)
+    int length = width * height;
+    unsigned char* des_data = (unsigned char *)malloc(sizeof(unsigned char)*length*byt);
+    memset(des_data, 0, sizeof(unsigned char)*length*byt);
+    memcpy(des_data, surface->data, sizeof(unsigned char)*length*byt);
+
+    int i, j;
+    int n1, n2;
+    for(i = 0; i < height; i++){
+        for(j = 0; j < width; j++){
+            n1 = j*height+height-i-1;
+            n2 = i*width+j;
+            surface->data[n1*byt] = des_data[n2*byt];
+            surface->data[n1*byt+1] = des_data[n2*byt+1];
+            surface->data[n1*byt+2] = des_data[n2*byt+2];
+            surface->data[n1*byt+3] = des_data[n2*byt+3];
+        }
+    }
+    free(des_data);
+}
+
+void rk_rotate_surface_180(GRSurface* surface)
+{
+    printf("(%s:%d) --- start.\n", __func__, __LINE__);
+    int width = surface->width;
+    int height = surface->height;
+    int byt = 4; // 4 byte for ARGB_8888 (2 byte for RGB_565)
+
+    int length = width * height;
+    unsigned char * des_data = (unsigned char *)malloc(sizeof(unsigned char)*length*byt);
+    memcpy(des_data,surface->data,sizeof(unsigned char)*length*byt);
+
+    memset(surface->data, 0, sizeof(unsigned char)*length*byt);
+    int i = 0;
+    for (i=0; i<length; i++)
+    {
+        surface->data[i*byt] = des_data[(length-i-1)*byt];
+        surface->data[i*byt+1] = des_data[(length-i-1)*byt+1];
+        surface->data[i*byt+2] = des_data[(length-i-1)*byt+2];
+        surface->data[i*byt+3] = des_data[(length-i-1)*byt+3];
+    }
+
+    free(des_data);
+}
+
+void rk_rotate_surface_270(GRSurface* surface, int width, int height){
+    int byt = 4; // 4 byte for ARGB_8888 (2 byte for RGB_565)
+    int length = width * height;
+    unsigned char* des_data = (unsigned char *)malloc(sizeof(unsigned char)*length*byt);
+    memcpy(des_data, surface->data, sizeof(unsigned char)*length*byt);
+    memset(surface->data, 0, sizeof(unsigned char)*length*byt);
+    int i, j;
+    int n1, n2;
+    for(i = 0; i < height; i++){
+        for(j = 0; j < width; j++){
+            n1 = (width-j-1)*height+i;
+            n2 = i*width+j;
+            surface->data[n1*byt] = des_data[n2*byt];
+            surface->data[n1*byt+1] = des_data[n2*byt+1];
+            surface->data[n1*byt+2] = des_data[n2*byt+2];
+            surface->data[n1*byt+3] = des_data[n2*byt+3];
+        }
+    }
+
+    free(des_data);
+}
+
 minui_backend* open_fbdev() {
     return &my_backend;
 }
@@ -200,6 +268,13 @@ static GRSurface* fbdev_flip(minui_backend* backend __unused) {
         // then flip the driver so we're displaying the other buffer
         // instead.
         gr_draw = gr_framebuffer + displayed_buffer;
+#ifdef RotateScreen_90
+        rk_rotate_surface_90(&gr_framebuffer[1-displayed_buffer], gr_framebuffer[1-displayed_buffer].height, gr_framebuffer[1-displayed_buffer].width);
+#elif defined RotateScreen_180
+        rk_rotate_surface_180(&gr_framebuffer[1-displayed_buffer]);
+#elif defined RotateScreen_270
+        rk_rotate_surface_270(&gr_framebuffer[1-displayed_buffer], gr_framebuffer[1-displayed_buffer].height, gr_framebuffer[1-displayed_buffer].width);
+#endif
         set_displayed_framebuffer(1-displayed_buffer);
     } else {
         // Copy from the in-memory surface to the framebuffer.

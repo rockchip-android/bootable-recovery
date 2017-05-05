@@ -63,6 +63,8 @@ void gr_font_size(const GRFont* font, int *x, int *y);
 void gr_blit(GRSurface* source, int sx, int sy, int w, int h, int dx, int dy);
 unsigned int gr_get_width(GRSurface* surface);
 unsigned int gr_get_height(GRSurface* surface);
+//撤销旋转
+void back_no_rotate();
 
 //
 // Input events.

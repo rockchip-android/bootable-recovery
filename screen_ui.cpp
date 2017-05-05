@@ -344,6 +344,7 @@ void ScreenRecoveryUI::draw_screen_locked() {
 // Redraw everything on the screen and flip the screen (make it visible).
 // Should only be called with updateMutex locked.
 void ScreenRecoveryUI::update_screen_locked() {
+    back_no_rotate();
     draw_screen_locked();
     gr_flip();
 }
@@ -351,6 +352,7 @@ void ScreenRecoveryUI::update_screen_locked() {
 // Updates only the progress bar, if possible, otherwise redraws the screen.
 // Should only be called with updateMutex locked.
 void ScreenRecoveryUI::update_progress_locked() {
+    back_no_rotate();
     if (show_text || !pagesIdentical) {
         draw_screen_locked();    // Must redraw the whole screen
         pagesIdentical = true;
