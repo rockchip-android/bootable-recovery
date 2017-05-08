@@ -207,3 +207,24 @@ void stopLed(int state) {
         printf("join led thread success!\n");
     }
 }
+
+
+/**
+ *  设置flash 节点
+ */
+void setFlashPoint(){
+    Volume* v = volume_for_path(sd_path);
+    if(v == NULL){
+        printf("(%s:%d) unknown volume for path [/mnt/external_sd]\n", __func__, __LINE__);
+    }
+
+    int ret = -1;
+    if(strcmp(v->fs_options, SD_POINT_0) == 0){
+        printf("(%s:%d) sdcard is /dev/block/mmcblk0.\n", __func__, __LINE__);
+        setenv(EMMC_POINT_NAME, EMMC_POINT_1, 0);
+    }else{
+        printf("(%s:%d) sdcard is /dev/block/mmcblk1.\n", __func__, __LINE__);
+        setenv(EMMC_POINT_NAME, EMMC_POINT_0, 0);
+    }
+    printf("emmc_point is %s\n", getenv(EMMC_POINT_NAME));
+}

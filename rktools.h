@@ -23,9 +23,16 @@
 #define OFF_VALUE 0
 #define ON_VALUE 1
 
+#define EMMC_POINT_NAME "emmc_point_name"
+#define EMMC_POINT_0 "/dev/block/mmcblk0"
+#define EMMC_POINT_1 "/dev/block/mmcblk1"
+#define SD_POINT_0 "/dev/block/mmcblk0"
+#define SD_POINT_1 "/dev/block/mmcblk1"
+
 char* check_media_package(const char *path);
 char* getSerial();
 int erase_baseparamer();
 void startLed();
 void stopLed(int state);
+void setFlashPoint();
 #endif

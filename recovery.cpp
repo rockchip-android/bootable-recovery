@@ -1676,6 +1676,8 @@ int main(int argc, char **argv) {
         get_args(&argc, &argv);
     }
 
+    setFlashPoint();
+
 #ifdef LogToSDCard
     rksdboot.ensure_sd_mounted();
     redirect_stdio(SDCARD_LOG_FILE);
