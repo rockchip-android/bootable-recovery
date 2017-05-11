@@ -1384,6 +1384,9 @@ Value* WriteRawParameterImageFn(const char* name, State* state, int argc, Expr* 
 
     result = success ? partition : strdup("");
 
+    if(!success){
+        goto done;
+    }
     printf("the package path is %s\n", g_package_file);
     memset(&boot, 0, sizeof(boot));
     strlcpy(boot.command, "boot-recovery", sizeof(boot.command));
@@ -1397,12 +1400,19 @@ Value* WriteRawParameterImageFn(const char* name, State* state, int argc, Expr* 
     //}
 
     printf("update parameter success, reboot now...\n");
-    android_reboot(ANDROID_RB_RESTART2, 0, "recovery");
+    //android_reboot(ANDROID_RB_RESTART2, 0, "recovery");
+    property_set(ANDROID_RB_PROPERTY, "reboot,recovery");
+    for(int i = 0; i < 10; i++){
+        sleep(2);
+        printf("stop here, waitting for reboot.\n");
+    }
 
 done:
     free(old_parameter_buf);
     if (result != partition) FreeValue(partition_value);
     FreeValue(contents);
+    //format_volume
+    fprintf(((UpdaterInfo*)(state->cookie))->cmd_pipe, "wipe_all\n");
     return StringValue(result);
 }
 // apply_patch_space(bytes)

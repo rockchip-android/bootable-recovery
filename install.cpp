@@ -49,6 +49,7 @@
 #include "verifier.h"
 
 extern RecoveryUI* ui;
+extern bool bWipeAfterUpdate;
 
 #define ASSUMED_UPDATE_BINARY_NAME  "META-INF/com/google/android/update-binary"
 static constexpr const char* AB_OTA_PAYLOAD_PROPERTIES = "payload_properties.txt";
@@ -434,7 +435,10 @@ try_update_binary(const char* path, ZipArchive* zip, bool* wipe_cache,
             // Save the logging request from updater and write to
             // last_install later.
             log_buffer.push_back(std::string(strtok(NULL, "\n")));
-        } else {
+        } else if (strcmp(command, "wipe_all") == 0){
+            printf("set bWipeAfterUpdate to true.\n");
+            bWipeAfterUpdate = true;
+        }else {
             LOGE("unknown command [%s]\n", command);
         }
     }

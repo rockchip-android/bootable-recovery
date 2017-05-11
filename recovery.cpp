@@ -142,6 +142,7 @@ char* reason = NULL;
 bool modified_flash = false;
 static bool has_cache = false;
 bool bIfUpdateLoader = false;
+bool bWipeAfterUpdate = false;
 
 // define for preinstall apk
 #define DELETE_APK_LEN 4*1024
@@ -534,6 +535,7 @@ static void copy_logs() {
     chmod(LAST_INSTALL_FILE, 0644);
     sync();
 }
+
 
 // clear the recovery command and prepare to boot a (hopefully working) system,
 // copy our log file to cache as well (for the system to read), and
@@ -2023,6 +2025,11 @@ int main(int argc, char **argv) {
         if (temp != Device::NO_ACTION) {
             after = temp;
         }
+    }
+
+    //format data after update parameter.
+    if(bWipeAfterUpdate){
+        wipe_data(false, device);
     }
 
     // Save logs and clean up before rebooting or shutting down.
