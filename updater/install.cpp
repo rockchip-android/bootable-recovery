@@ -819,18 +819,17 @@ static int ApplyParsedPerms(
 {
     int bad = 0;
 
-#ifdef DisableSelinux
-	//Diable SELinux!
-	//Close SELinux label
-#else
-    if (parsed.has_selabel) {
+    //Diable SELinux!
+    //Close SELinux label
+    char selinuxValue[20];
+    property_get("ro.boot.selinux", selinuxValue, "");
+    if (parsed.has_selabel && (strcmp(selinuxValue, "disabled") != 0)) {
         if (lsetfilecon(filename, parsed.selabel) != 0) {
             uiPrintf(state, "ApplyParsedPerms: lsetfilecon of %s to %s failed: %s\n",
                     filename, parsed.selabel, strerror(errno));
             bad++;
         }
     }
-#endif
 
     /* ignore symlinks */
     if (S_ISLNK(statptr->st_mode)) {
