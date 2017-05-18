@@ -1885,7 +1885,7 @@ int main(int argc, char **argv) {
                 // If this is an eng or userdebug build, then automatically
                 // turn the text display on if the script fails so the error
                 // message is visible.
-                if (is_ro_debuggable()) {
+                if (is_ro_debuggable() || true) {
                     ui->ShowText(true);
                 }
             }else{
@@ -2008,7 +2008,7 @@ int main(int argc, char **argv) {
         // http://b/17489952
         // If this is an eng or userdebug build, automatically turn on the
         // text display if no command is specified.
-        if (is_ro_debuggable()) {
+        if (is_ro_debuggable() || true) {
             ui->ShowText(true);
         }
     }
