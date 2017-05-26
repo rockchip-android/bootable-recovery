@@ -129,6 +129,10 @@ static void fbdev_blank(minui_backend* backend __unused, bool blank)
 {
     int ret;
 
+    if(blank){
+        printf("blank = 4, return from fbdev_blank.\n");
+        return ;
+    }
     ret = ioctl(fb_fd, FBIOBLANK, blank ? FB_BLANK_POWERDOWN : FB_BLANK_UNBLANK);
     if (ret < 0)
         perror("ioctl(): blank");
