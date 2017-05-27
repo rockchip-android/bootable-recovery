@@ -129,10 +129,6 @@ static void fbdev_blank(minui_backend* backend __unused, bool blank)
 {
     int ret;
 
-    if(blank){
-        printf("blank = 4, return from fbdev_blank.\n");
-        return ;
-    }
     ret = ioctl(fb_fd, FBIOBLANK, blank ? FB_BLANK_POWERDOWN : FB_BLANK_UNBLANK);
     if (ret < 0)
         perror("ioctl(): blank");
@@ -260,7 +256,7 @@ static GRSurface* fbdev_init(minui_backend* backend) {
 
     printf("framebuffer: %d (%d x %d)\n", fb_fd, gr_draw->width, gr_draw->height);
 
-    fbdev_blank(backend, true);
+    //fbdev_blank(backend, true);
     fbdev_blank(backend, false);
 
     return gr_draw;
