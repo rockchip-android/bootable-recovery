@@ -96,6 +96,7 @@ static const struct option OPTIONS[] = {
   { "wipe_package_size", required_argument, NULL, 0 },
   { "resize_partition", required_argument, NULL, 'r'+'p' },
   { "factory_mode", required_argument, NULL, 'f' },
+  { "pcba_test", required_argument, NULL, 'p'+'t' },
   { NULL, 0, NULL, 0 },
 };
 
@@ -1750,6 +1751,7 @@ int main(int argc, char **argv) {
             }
             break;
         case 'f': factory_mode = optarg; break;
+        case 'p'+'t': factory_mode = optarg; break;
         case '?':
             LOGE("Invalid command argument\n");
             continue;
