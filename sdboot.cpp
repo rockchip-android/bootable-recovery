@@ -19,6 +19,7 @@
 #include <cutils/properties.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include "cutils/android_reboot.h"
 #include "common.h"
 #include "sdboot.h"
 #include "roots.h"
@@ -43,6 +44,7 @@ SDBoot::SDBoot(){
     LOGI("ExternalSD_ROOT: %s\n", EX_SDCARD_ROOT.c_str()); 
     status = INSTALL_ERROR;
     bootwhere();
+    bUpdateModel = false;
 }
 bool SDBoot::isSDboot(){
     return bSDBoot;
@@ -394,6 +396,7 @@ int SDBoot::do_usb_mode_update(const char *pFile){
     return status;
 }
 int SDBoot::do_rk_mode_update(const char *pFile){
+    bUpdateModel = true;
     if (bSDBoot){
         printf("SDBoot optarg=%s\n", optarg);
         status = do_sd_mode_update(pFile);
@@ -452,6 +455,12 @@ void SDBoot::check_device_remove(){
             ui->Print("Doing Actions failed!please remove the usb disk......\n");
         if (bUsbMounted)
             checkUSBRemoved();
+    }
+
+    if(bUpdateModel){
+        ui->Print("reboot ...\n");
+        sync();
+        property_set(ANDROID_RB_PROPERTY, "reboot,");
     }
 }
 void SDBoot::checkSDRemoved() {
