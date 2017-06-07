@@ -38,6 +38,7 @@ private:
     int status;
     bool bSDBoot;
     bool bUsbBoot;
+    bool bUpdateModel;
     bool bSDMounted;
     bool bUsbMounted;
     std::string EX_SDCARD_ROOT;
