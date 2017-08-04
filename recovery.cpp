@@ -1679,6 +1679,7 @@ int main(int argc, char **argv) {
         get_args(&argc, &argv);
     }
 
+    dumpCmdArgs(argc, argv);
     setFlashPoint();
 
 #ifdef LogToSDCard

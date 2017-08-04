@@ -228,3 +228,13 @@ void setFlashPoint(){
     }
     printf("emmc_point is %s\n", getenv(EMMC_POINT_NAME));
 }
+
+
+
+void dumpCmdArgs(int argc, char** argv) {
+    fprintf(stdout, "=== start %s:%d ===\n", __func__, __LINE__);
+    for(int i = 0; i < argc; i++)
+    {
+        fprintf(stdout, "argv[%d] =  %s.\n", i, argv[i]);
+    }
+}

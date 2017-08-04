@@ -35,4 +35,5 @@ int erase_baseparamer();
 void startLed();
 void stopLed(int state);
 void setFlashPoint();
+void dumpCmdArgs(int argc, char** argv);
 #endif
