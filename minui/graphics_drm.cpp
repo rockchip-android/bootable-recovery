@@ -444,6 +444,14 @@ static GRSurface* drm_init(minui_backend* backend __unused) {
 static GRSurface* drm_flip(minui_backend* backend __unused) {
     int ret;
 
+#ifdef RotateScreen_90
+	rk_rotate_surface_90(&(drm_surfaces[current_buffer]->base), drm_surfaces[current_buffer]->base.height, drm_surfaces[current_buffer]->base.width);
+#elif defined RotateScreen_180
+	rk_rotate_surface_180(&(drm_surfaces[current_buffer]->base));
+#elif defined RotateScreen_270
+	rk_rotate_surface_270(&(drm_surfaces[current_buffer]->base), drm_surfaces[current_buffer]->base.height, drm_surfaces[current_buffer]->base.width);
+#endif
+
     ret = drmModePageFlip(drm_fd, main_monitor_crtc->crtc_id,
                           drm_surfaces[current_buffer]->fb_id, 0, NULL);
     if (ret < 0) {

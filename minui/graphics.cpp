@@ -81,10 +81,17 @@ static unsigned int gr_get_draw_height(GRSurface* surface) {
 }
 
 static unsigned int gr_get_row_bytes(GRSurface* surface){
+	int row_bytes;
+
     if(surface == NULL){
         return 0;
     }
-    return surface->row_bytes;
+
+    row_bytes = gr_get_draw_width(surface) * surface->pixel_bytes;
+	if(row_bytes % 4)
+		row_bytes = row_bytes + (4 - row_bytes % 4);
+
+	return row_bytes;
 }
 static bool outside(int x, int y)
 {
