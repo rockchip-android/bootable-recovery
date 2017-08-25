@@ -1914,6 +1914,54 @@ Value* WriteRawLoaderImageFn(const char* name, State* state, int argc, Expr* arg
 done:
     return StringValue(strdup(bRet ? "t" : ""));
 }
+Value* WriteRawSparseImageFn(const char* name, State* state, int argc, Expr* argv[]) {
+    bool Success = false;
+    int bootfd, ret = 0;
+    bool loader_ok;
+    const ZipEntry* loader_entry;
+    ZipArchive* zip = ((UpdaterInfo*)(state->cookie))->package_zip;
+
+    if(argc != 2){
+        printf("WriteRawSparseImageFn argc error!\n");
+    }else{
+        std::string partition_name(argv[0]->name); //vendor
+        std::string src_name(argv[1]->name);       //vendor.img
+        std::string des_name("/tmp/");        ///tmp/vendor.img
+        des_name = des_name.append(src_name);
+
+
+        printf("Start to load %s from update.zip.\n", src_name.c_str());
+        loader_entry = mzFindZipEntry(zip, src_name.c_str());
+        if (loader_entry == NULL){
+            printf("Can't find %s in update.zip.\n", src_name.c_str());
+            goto done;
+        }else if (loader_entry != NULL) {
+            printf("Find %s for update.zip\n", src_name.c_str());
+            bootfd = creat(des_name.c_str(), 0755);
+            if (bootfd < 0){
+                mzCloseZipArchive(zip);
+                printf("Can't make %s\n", des_name.c_str());
+                goto done;
+            }
+            loader_ok = mzExtractZipEntryToFile(zip, loader_entry, bootfd);
+            if (!loader_ok) {
+                mzCloseZipArchive(zip);
+                printf("Can't copy %s\n", des_name.c_str());
+                goto done;
+            }
+            close(bootfd);
+            printf("Create %s tmp success %s\n", src_name.c_str(), des_name.c_str());
+
+            //update
+            Success = do_rk_sparse_update(partition_name.c_str(), des_name.c_str());
+        }
+    }
+done:
+    if(!Success){
+        printf("Upgrade Sparse failed!\n");
+    }
+    return StringValue(strdup(Success ? "t": ""));
+}
 void RegisterInstallFunctions() {
     RegisterFunction("mount", MountFn);
     RegisterFunction("is_mounted", IsMountedFn);
@@ -1944,6 +1992,7 @@ void RegisterInstallFunctions() {
     RegisterFunction("write_raw_image", WriteRawImageFn);
     RegisterFunction("write_raw_parameter_image", WriteRawParameterImageFn);
     RegisterFunction("write_raw_loader_image", WriteRawLoaderImageFn);
+    RegisterFunction("write_raw_sparse_image", WriteRawSparseImageFn);
 
     RegisterFunction("apply_patch", ApplyPatchFn);
     RegisterFunction("apply_patch_check", ApplyPatchCheckFn);

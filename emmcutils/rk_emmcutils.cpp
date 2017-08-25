@@ -91,19 +91,28 @@ char* getDevicePath(char *mtdDevice) {
     }
     return mtdDevice;
 }
+static char deviceName[128] = "\0";
 int transformPath(const char *in, char *out) {
-    if(fstab == NULL)
+    if(strlen(deviceName) == 0){
+        if(fstab == NULL)
         load_volume_table();
-    if(in == NULL || out == NULL) {
-        printf("transformPath argument can't be NULL\n");
-        return -1;
+        if(in == NULL || out == NULL) {
+            printf("transformPath argument can't be NULL\n");
+            return -1;
+        }
+        printf("transformPath in: %s\n", in);
+        Volume* v = volume_for_path("/system");
+        if(v !=  NULL){
+            strcpy(deviceName, v->blk_device);
+        }else{
+            printf("Cannot load volume %s!\n", "/system");
+            return -1;
+        }
     }
-    printf("transformPath in: %s\n", in);
-    Volume* v = volume_for_path("/system");
-    if (v != NULL) {
-        printf("get volume path %s\n", v->blk_device);
-        int len = strlen(v->blk_device);
-        strncpy(out, v->blk_device, len-6);
+    if (strlen(deviceName) != 0) {
+        printf("get volume path %s\n", deviceName);
+        int len = strlen(deviceName);
+        strncpy(out, deviceName, len-6);
         *(out + len - 6) = '\0';
     }else {
         printf("Cannot load volume %s!\n", "/system");
