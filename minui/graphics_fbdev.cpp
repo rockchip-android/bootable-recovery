@@ -55,17 +55,19 @@ static minui_backend my_backend = {
 
 void rk_rotate_surface_90(GRSurface* surface, int width, int height){
     int byt = 4; // 4 byte for ARGB_8888 (2 byte for RGB_565)
-    int length = width * height;
+    int draw_width = (width + 15) & (~15);
+    int draw_height = (height + 15) & (~15);
+    int length = draw_width * draw_height;
     unsigned char* des_data = (unsigned char *)malloc(sizeof(unsigned char)*length*byt);
     memset(des_data, 0, sizeof(unsigned char)*length*byt);
     memcpy(des_data, surface->data, sizeof(unsigned char)*length*byt);
 
     int i, j;
     int n1, n2;
-    for(i = 0; i < height; i++){
-        for(j = 0; j < width; j++){
-            n1 = j*height+height-i-1;
-            n2 = i*width+j;
+    for(i = 0; i < draw_height; i++){
+        for(j = 0; j < draw_width; j++){
+            n1 = j*draw_height+draw_height-i-1;
+            n2 = i*draw_width+j;
             surface->data[n1*byt] = des_data[n2*byt];
             surface->data[n1*byt+1] = des_data[n2*byt+1];
             surface->data[n1*byt+2] = des_data[n2*byt+2];
@@ -78,11 +80,11 @@ void rk_rotate_surface_90(GRSurface* surface, int width, int height){
 void rk_rotate_surface_180(GRSurface* surface)
 {
     printf("(%s:%d) --- start.\n", __func__, __LINE__);
-    int width = surface->width;
-    int height = surface->height;
+    int draw_width = (surface->width + 15) & (~15);
+    int draw_height = (surface->height + 15) & (~15);
     int byt = 4; // 4 byte for ARGB_8888 (2 byte for RGB_565)
 
-    int length = width * height;
+    int length = draw_width * draw_height;
     unsigned char * des_data = (unsigned char *)malloc(sizeof(unsigned char)*length*byt);
     memcpy(des_data,surface->data,sizeof(unsigned char)*length*byt);
 
@@ -101,16 +103,18 @@ void rk_rotate_surface_180(GRSurface* surface)
 
 void rk_rotate_surface_270(GRSurface* surface, int width, int height){
     int byt = 4; // 4 byte for ARGB_8888 (2 byte for RGB_565)
-    int length = width * height;
+    int draw_width = (width + 15) & (~15);
+    int draw_height = (height + 15) & (~15);
+    int length = draw_width * draw_height;
     unsigned char* des_data = (unsigned char *)malloc(sizeof(unsigned char)*length*byt);
     memcpy(des_data, surface->data, sizeof(unsigned char)*length*byt);
     memset(surface->data, 0, sizeof(unsigned char)*length*byt);
     int i, j;
     int n1, n2;
-    for(i = 0; i < height; i++){
-        for(j = 0; j < width; j++){
-            n1 = (width-j-1)*height+i;
-            n2 = i*width+j;
+    for(i = 0; i < draw_height; i++){
+        for(j = 0; j < draw_width; j++){
+            n1 = (draw_width-j-1)*draw_height+i;
+            n2 = i*draw_width+j;
             surface->data[n1*byt] = des_data[n2*byt];
             surface->data[n1*byt+1] = des_data[n2*byt+1];
             surface->data[n1*byt+2] = des_data[n2*byt+2];
