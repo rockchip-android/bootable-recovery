@@ -244,12 +244,12 @@ void SDBoot::ensure_sd_mounted(){
 
 void SDBoot::ensure_usb_mounted(){
     int i;
-    for(i = 0; i < 3; i++) {
+    for(i = 0; i < 10; i++) {
         if(0 == mount_usb_device()){
             bUsbMounted = true;
             break;
         }else {
-            printf("delay 1sec\n");
+            printf("delay 1 sec\n");
             sleep(1);
         }
     } 
