@@ -78,7 +78,7 @@ static void drm_blank(minui_backend* backend __unused, bool blank) {
         drm_disable_crtc(drm_fd, main_monitor_crtc);
     else
         drm_enable_crtc(drm_fd, main_monitor_crtc,
-                        drm_surfaces[current_buffer]);
+                        drm_surfaces[1 - current_buffer]);
 }
 
 static void drm_destroy_surface(struct drm_surface *surface) {
