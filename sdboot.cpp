@@ -266,14 +266,22 @@ int SDBoot::mount_usb_device()
     d = opendir(USB_ROOT);
     if (d)
     {//check whether usb_root has  mounted
-     strcpy(configFile, USB_ROOT);
-     strcat(configFile, "/sd_boot_config.config");
-     if (access(configFile,F_OK)==0)
-     {
-         closedir(d);
-         return 0;
-     }
-     closedir(d);
+        strcpy(configFile, USB_ROOT);
+        strcat(configFile, "/sd_boot_config.config");
+        if (access(configFile,F_OK)==0)
+        {
+            closedir(d);
+            return 0;
+        }
+        if(access(usb_rkimage, F_OK) == 0){
+            closedir(d);
+            return 0;
+        }
+        if(access(usb_rkpackage, F_OK) == 0){
+            closedir(d);
+            return 0;
+        }
+        closedir(d);
     }  
     else
     {  

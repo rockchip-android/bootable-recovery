@@ -11,6 +11,8 @@
 #include <string>
 #include <sstream>
 
+#define usb_rkimage "/mnt/usb_storage/update.img"
+#define usb_rkpackage "/mnt/usb_storage/update.zip"
 typedef struct {
     char* name;
     char* value;
