@@ -1931,6 +1931,9 @@ int main(int argc, char **argv) {
             bAutoUpdateComplete = false;
         }else{
             bAutoUpdateComplete = true;
+            #ifdef WIPE_AFTER_UPDATE
+            bWipeAfterUpdate = true;
+            #endif
         }
         /*
         if(demo_copy_path){
