@@ -78,7 +78,11 @@ char* getDevicePath(char *mtdDevice) {
             }
         }
         if(strstr(mtdDevice, "/dev/block/rknand_")) {
-            strcat(devicePath, mtdDevice+18);
+            if(strcmp(mtdDevice+18, "userdata") == 0){
+                strcat(devicePath, "data");
+            }else{
+                strcat(devicePath, mtdDevice+18);
+            }
             printf("mtd device %s\n", devicePath);
             Volume* v = volume_for_path(devicePath);
             if (v != NULL) {
