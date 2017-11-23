@@ -410,7 +410,8 @@ int setup_install_mounts() {
 
         } else {
             if (strcmp(v->mount_point, "/mnt/external_sd") ==0 ||
-                strcmp(v->mount_point, "/mnt/usb_storage") == 0) {
+                strcmp(v->mount_point, "/mnt/usb_storage") == 0 ||
+                strcmp(v->mount_point, "/backup") ==0 ) {
                 LOGE("setup_install_mounts, expect %s\n", v->mount_point);
                 continue;
             }

@@ -28,6 +28,7 @@ static const char* MENU_ITEMS[] = {
     "Mount /system",
     "View recovery logs",
     "Run graphics test",
+    "Recovery System",
     "Power off",
     NULL,
 };
@@ -44,6 +45,7 @@ static const Device::BuiltinAction MENU_ACTIONS[] = {
     Device::MOUNT_SYSTEM,
     Device::VIEW_RECOVERY_LOGS,
     Device::RUN_GRAPHICS_TEST,
+    Device::RECOVERY_SYSTEM,
     Device::SHUTDOWN,
 };
 

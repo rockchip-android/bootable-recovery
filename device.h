@@ -69,6 +69,7 @@ class Device {
         VIEW_RECOVERY_LOGS = 9,
         MOUNT_SYSTEM = 10,
         RUN_GRAPHICS_TEST = 11,
+        RECOVERY_SYSTEM = 12,
     };
 
     // Return the list of menu items (an array of strings,
