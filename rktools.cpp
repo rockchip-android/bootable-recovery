@@ -14,6 +14,13 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <sys/types.h>
+#include <dirent.h>
+#include <stdio.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <errno.h>
+#include <unistd.h>
 #include "sdboot.h"
 #include "rktools.h"
 #include <fs_mgr.h>
@@ -212,21 +219,63 @@ void stopLed(int state) {
 /**
  *  设置flash 节点
  */
-void setFlashPoint(){
-    Volume* v = volume_for_path(sd_path);
-    if(v == NULL){
-        printf("(%s:%d) unknown volume for path [/mnt/external_sd]\n", __func__, __LINE__);
+static char result_point[4][20]={'\0'}; //0-->emmc, 1-->sdcard, 2-->SDIO, 3-->SDcombo
+int readFile(DIR* dir, char* filename){
+    char name[30] = {'\0'};
+    strcpy(name, filename);
+    strcat(name, "/type");
+    int fd = openat(dirfd(dir), name, O_RDONLY);
+    if(fd == -1){
+        printf("Error: openat %s error %s.\n", name, strerror(errno));
+        return -1;
+    }
+    char resultBuf[10] = {'\0'};
+    read(fd, resultBuf, sizeof(resultBuf));
+    for(int i = 0; i < strlen(resultBuf); i++){
+        if(resultBuf[i] == '\n'){
+            resultBuf[i] = '\0';
+            break;
+        }
+    }
+    for(int i = 0; i < 4; i++){
+        if(strcmp(typeName[i], resultBuf) == 0){
+            //printf("type is %s.\n", typeName[i]);
+            return i;
+        }
     }
 
-    int ret = -1;
-    if(strcmp(v->fs_options, SD_POINT_0) == 0){
-        printf("(%s:%d) sdcard is /dev/block/mmcblk0.\n", __func__, __LINE__);
-        setenv(EMMC_POINT_NAME, EMMC_POINT_1, 0);
-    }else{
-        printf("(%s:%d) sdcard is /dev/block/mmcblk1.\n", __func__, __LINE__);
-        setenv(EMMC_POINT_NAME, EMMC_POINT_0, 0);
+    printf("Error:no found type!\n");
+    return -1;
+}
+
+void init_sd_emmc_point(){
+    DIR* dir = opendir("/sys/bus/mmc/devices/");
+    if(dir != NULL){
+        dirent* de;
+        while((de = readdir(dir))){
+            if(strncmp(de->d_name, "mmc", 3) == 0){
+                //printf("find mmc is %s.\n", de->d_name);
+                char flag = de->d_name[3];
+                int ret = -1;
+                ret = readFile(dir, de->d_name);
+                if(ret != -1){
+                    strcpy(result_point[ret], point_items[flag - '0']);
+                }else{
+                    strcpy(result_point[ret], "");
+                }
+            }
+        }
+
     }
+    closedir(dir);
+}
+
+void setFlashPoint(){
+    init_sd_emmc_point();
+    setenv(EMMC_POINT_NAME, result_point[MMC], 0);
+    setenv(SD_POINT_NAME, result_point[SD], 0);
     printf("emmc_point is %s\n", getenv(EMMC_POINT_NAME));
+    printf("emmc_point is %s\n", getenv(SD_POINT_NAME));
 }
 
 

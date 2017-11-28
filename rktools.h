@@ -24,10 +24,28 @@
 #define ON_VALUE 1
 
 #define EMMC_POINT_NAME "emmc_point_name"
-#define EMMC_POINT_0 "/dev/block/mmcblk0"
-#define EMMC_POINT_1 "/dev/block/mmcblk1"
-#define SD_POINT_0 "/dev/block/mmcblk0"
-#define SD_POINT_1 "/dev/block/mmcblk1"
+#define SD_POINT_NAME "sd_point_name"
+
+static const char *point_items[] = {
+    "/dev/block/mmcblk0",
+    "/dev/block/mmcblk1",
+    "/dev/block/mmcblk2",
+    "/dev/block/mmcblk3",
+};
+
+enum type{
+    MMC,
+    SD,
+    SDIO,
+    SDcombo,
+};
+
+static const char *typeName[] = {
+    "MMC",
+    "SD",
+    "SDIO",
+    "SDcombo",
+};
 
 char* check_media_package(const char *path);
 char* getSerial();
