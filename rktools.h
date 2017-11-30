@@ -25,6 +25,7 @@
 
 #define EMMC_POINT_NAME "emmc_point_name"
 #define SD_POINT_NAME "sd_point_name"
+#define SD_POINT_NAME_2 "sd_point_name_2"
 
 static const char *point_items[] = {
     "/dev/block/mmcblk0",

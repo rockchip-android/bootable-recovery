@@ -33,6 +33,7 @@
 #include "wipe.h"
 #include "cryptfs.h"
 #include "emmcutils/rk_emmcutils.h"
+#include "rktools.h"
 
 
 static struct fstab *fstab = NULL;
@@ -133,16 +134,28 @@ int ensure_path_mounted_at(const char* path, const char* mount_point) {
         LOGE("failed to mount %s (%s)\n", mount_point, strerror(errno));
         return -1;
     }else if(strcmp(v->fs_type, "vfat") == 0){
-        result = mount(v->blk_device, v->mount_point, v->fs_type,
+        char *blk_device;
+        blk_device = v->blk_device;
+        if(strcmp("/mnt/external_sd", v->mount_point) == 0){
+            blk_device = getenv(SD_POINT_NAME);
+            if(blk_device == NULL){
+                setFlashPoint();
+                blk_device = getenv(SD_POINT_NAME);
+            }
+        }
+        result = mount(blk_device, v->mount_point, v->fs_type,
                        MS_NOATIME | MS_NODEV | MS_NODIRATIME, "shortname=mixed,utf8");
         if (result == 0) return 0;
 
-        LOGW("trying mount %s to ntfs\n", v->blk_device);
-        result = mount(v->blk_device, v->mount_point, "ntfs",
+        LOGW("trying mount %s to ntfs\n", blk_device);
+        result = mount(blk_device, v->mount_point, "ntfs",
                        MS_NOATIME | MS_NODEV | MS_NODIRATIME, "");
         if (result == 0) return 0;
 
         char *sec_dev = v->fs_options;
+        if(strcmp("/mnt/external_sd", v->mount_point) == 0){
+            sec_dev = getenv(SD_POINT_NAME_2);
+        }
         if(sec_dev != NULL) {
             char *temp = strchr(sec_dev, ',');
             if(temp) {

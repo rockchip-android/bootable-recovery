@@ -272,10 +272,22 @@ void init_sd_emmc_point(){
 
 void setFlashPoint(){
     init_sd_emmc_point();
-    setenv(EMMC_POINT_NAME, result_point[MMC], 0);
-    setenv(SD_POINT_NAME, result_point[SD], 0);
+    setenv(EMMC_POINT_NAME, result_point[MMC], 1);
+    //SDcard 有两个挂载点
+
+    if(access(result_point[SD], F_OK) == 0)
+        setenv(SD_POINT_NAME_2, result_point[SD], 1);
+    char name_t[22];
+    if(strlen(result_point[SD]) > 0){
+        strcpy(name_t, result_point[SD]);
+        strcat(name_t, "p1");
+    }
+    if(access(name_t, F_OK) == 0)
+        setenv(SD_POINT_NAME, name_t, 1);
+
     printf("emmc_point is %s\n", getenv(EMMC_POINT_NAME));
-    printf("emmc_point is %s\n", getenv(SD_POINT_NAME));
+    printf("sd_point is %s\n", getenv(SD_POINT_NAME));
+    printf("sd_point_2 is %s\n", getenv(SD_POINT_NAME_2));
 }
 
 
